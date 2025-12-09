@@ -7,23 +7,24 @@ class TicketStatus(models.Model):
 
 class TicketPriority(models.Model):
     priority=models.CharField(max_length=6)
-    time=models.TimeField()
+    duration=models.TimeField()
 
 class Ticket(models.Model):
-    customer_id=ForeignKey(AppUser,on_delete=models.CASCADE)
-    title=models.CharField(unique=True,max_length=255)
+    creator_id=ForeignKey(AppUser, related_name="assigned_by", on_delete=models.CASCADE)
+    title=models.CharField(unique=True, max_length=255)
     description=models.TextField()
-    priority_id=ForeignKey(TicketPriority,on_delete=CASCADE)
-    status=ForeignKey(TicketStatus,default="TODO",on_delete=CASCADE)
+    priority_id=ForeignKey(TicketPriority, on_delete=CASCADE)
+    status=ForeignKey(TicketStatus,default="TODO", on_delete=CASCADE)
     created_at=models.DateTimeField(auto_now_add=True)
+    assignee_id=ForeignKey(AppUser, related_name="assigned_to", null=True,on_delete=models.SET_NULL)
 
 class TicketHistory(models.Model):
-    ticket_id=ForeignKey(Ticket,on_delete=models.CASCADE)
-    previous_state=ForeignKey(TicketStatus,default="TODO",related_name="old_status",on_delete=CASCADE)
+    ticket_id=ForeignKey(Ticket, on_delete=models.CASCADE)
+    previous_state=ForeignKey(TicketStatus, default="TODO", related_name="old_status", on_delete=CASCADE)
     prev_description=models.TextField()
-    current_state=ForeignKey(TicketStatus,related_name="new_status",on_delete=CASCADE)
+    current_state=ForeignKey(TicketStatus, related_name="new_status", on_delete=CASCADE)
     current_description=models.TextField()
-    changed_by=ForeignKey(AppUser,on_delete=CASCADE)
+    updated_by=ForeignKey(AppUser,on_delete=CASCADE)
     changed_at=models.DateTimeField(auto_now_add=True)
     version=models.IntegerField(default=1)
 

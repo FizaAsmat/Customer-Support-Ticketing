@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Dashboard{% endblock %}
+
+{% block content %}
+<h2>Welcome, {{ user.name }}</h2>
+
+<!-- Hidden Create Agent Form -->
+<div id="createAgentForm" style="display:none; margin-top:20px;">
+    <form id="agentForm">
+        <div class="mb-3">
+            <label for="agent_name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="agent_name" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="agent_email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="agent_email" name="email" required>
+        </div>
+        <div class="mb-3">
+            <label for="agent_job" class="form-label">Job Title</label>
+            <input type="text" class="form-control" id="agent_job" name="job_title" required>
+        </div>
+        <div class="mb-3">
+            <label for="agent_password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="agent_password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Agent</button>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle form
+    const createBtn = document.getElementById('createAgentBtn');
+    if(createBtn){
+        createBtn.addEventListener('click', function(e){
+            e.preventDefault();
+            const form = document.getElementById('createAgentForm');
+            if(form){
+                form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+            }
+        });
+    }
+
+    // Submit form via fetch API
+    document.getElementById('agentForm').addEventListener('submit', async function(e){
+        e.preventDefault();
+
+        const name = document.getElementById('agent_name').value;
+        const email = document.getElementById('agent_email').value;
+        const job_title = document.getElementById('agent_job').value;
+        const password = document.getElementById('agent_password').value;
+
+        try {
+            const res = await fetch('{% url "create-agent_api" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ name, email, job_title, password })
+            });
+
+            const data = await res.json();
+
+            if(res.ok){
+                alert("Agent created successfully! ID: " + data.agent_id);
+                document.getElementById('agentForm').reset();
+                document.getElementById('createAgentForm').style.display = 'none';
+            } else {
+                alert(JSON.stringify(data));
+            }
+
+        } catch(err){
+            console.error(err);
+            alert("Error occurred. Try again.");
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Signup{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h2 class="mb-4 text-center">Customer Signup</h2>
+        <form id="signupForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="portal" class="form-label">Portal Name</label>
+                <input type="text" name="portal" id="portal" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input type="text" name="name" id="name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" name="email" id="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" name="password" id="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Signup</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById("signupForm").addEventListener("submit", async function(e){
+    e.preventDefault(); // prevent normal form submission
+
+    const portal = document.getElementById("portal").value;
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        const response = await fetch("{% url 'customer-signup-api' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ portal, name, email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(data.message);  // success message
+            window.location.href = "{% url 'customer_dashboard_page' %}"; // redirect to dashboard
+        } else {
+            // display validation errors from DRF
+            let errorText = "";
+            for (let key in data) {
+                errorText += `${key}: ${data[key]}\n`;
+            }
+            alert(errorText);
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("An unexpected error occurred. Please try again.");
+    }
+});
+</script>
+{% endblock %}

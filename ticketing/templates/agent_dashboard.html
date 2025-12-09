@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block title %}Agent Dashboard{% endblock %}
+
+{% block content %}
+<h2>Welcome, {{ user.name }}!</h2>
+<p>Portal: {{ user.account_id.portal }}</p>
+<p>Role: {{ user.role }}</p>
+{% endblock %}

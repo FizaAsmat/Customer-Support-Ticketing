@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}My App{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Customer-Agent App</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <ul class="navbar-nav ms-auto" id="navbarItems">
+                <!-- Dynamic content populated via JS -->
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Page Content -->
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const navbar = document.getElementById('navbarItems');
+    const token = localStorage.getItem('access_token');
+    const role = localStorage.getItem('role');
+
+    if(token && role){
+        // User is "logged in" via JWT
+        if(role === 'Customer'){
+            navbar.innerHTML = `
+                <li class="nav-item"><a class="nav-link btn btn-success me-2 text-white" href="/dashboard/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link btn btn-primary me-2 text-white" href="#" id="createAgentBtn">Create Agent</a></li>
+                <li class="nav-item"><a class="nav-link btn btn-warning me-2 text-white" href="#">Create Ticket</a></li>
+                <li class="nav-item"><a class="nav-link btn btn-danger text-white" href="#" id="logoutBtn">Logout</a></li>
+            `;
+        } else if(role === 'Agent'){
+            navbar.innerHTML = `
+                <li class="nav-item"><a class="nav-link btn btn-primary me-2 text-white" href="/agent-dashboard/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link btn btn-danger text-white" href="#" id="logoutBtn">Logout</a></li>
+            `;
+        }
+
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', function(e){
+            e.preventDefault();
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('role');
+            window.location.href = '/app/login/';
+        });
+
+        // Create Agent form toggle (Customer only)
+        const createBtn = document.getElementById('createAgentBtn');
+        if(createBtn){
+            createBtn.addEventListener('click', function(e){
+                e.preventDefault();
+                const form = document.getElementById('createAgentForm');
+                if(form){
+                    form.style.display = (form.style.display === 'none' || !form.style.display) ? 'block' : 'none';
+                }
+            });
+        }
+
+    } else {
+        // User not logged in
+        navbar.innerHTML = `
+            <li class="nav-item"><a class="nav-link btn btn-primary me-2 text-white" href="/app/login/">Login</a></li>
+            <li class="nav-item"><a class="nav-link btn btn-success text-white" href="/app/signup/">Signup</a></li>
+        `;
+    }
+});
+</script>
+</body>
+</html>

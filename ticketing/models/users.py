@@ -17,7 +17,7 @@ class AppUser(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField()
     password = models.CharField(max_length=72)
-    job = models.CharField(max_length=20)
+    job_title = models.CharField(max_length=20)
     role = models.CharField(
         choices=UserType.choices,
         default=UserType.CUSTOMER

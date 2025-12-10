@@ -1,6 +1,10 @@
-{% extends 'base.html' %}
+{% extends 'dashboard.html' %}
 
-{% block title %}Agent Dashboard{% endblock %}
+{% block navbar %}
+    {% include 'agent_navbar.html' %}
+{% endblock %}
+
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
 <h2>Welcome, {{ user.name }}!</h2>

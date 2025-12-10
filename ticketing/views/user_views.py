@@ -1,75 +1,91 @@
-from django.shortcuts import render
-from rest_framework import status
-from rest_framework.permissions import AllowAny,IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from ..permissions import IsCustomer
-from ..serializers.user_serial import CustomerSignupSerializer,AgentCreateSerializer,LoginSerializer
 from django.shortcuts import render, redirect
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
-from ..models.users import UserType
-
-class CustomerSignupView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self,request):
-        serializer =CustomerSignupSerializer(data=request.data)
-
-        if serializer.is_valid():
-            user=serializer.save()
-            return Response({"message":"Customer registered successfully","user_id":user.id},
-                            status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+from ..serializers.user_form import CustomerSignupForm, AgentCreateForm, LoginForm
+from ..models.users import UserType, AppUser
+from ..permissions import CustomerRequiredMixin, AgentRequiredMixin
 
 
-class AgentCreateView(APIView):
-    permission_classes = IsAuthenticated, IsCustomer
-
-    def post(self,request):
-        serializer=AgentCreateSerializer(data=request.data, context={"request":request})
-
-        if serializer.is_valid():
-            agent=serializer.save()
-            return Response({"message":"Agent created successfully", "agent_id":agent.id},
-                            status=status.HTTP_201_CREATED)
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
-class LoginView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self,request):
-        serializer=LoginSerializer(data=request.data)
-
-        if serializer.is_valid():
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
-class LoginPageView(View):
+class CustomerSignupView(View):
     def get(self, request):
-        return render(request, "login.html")
+        form = CustomerSignupForm()
+        return render(request, "signup.html", {"form": form})
 
-
-class SignupPageView(View):
-    def get(self, request):
-        return render(request, "signup.html")
-
-
-class CustomerDashboardPageView(LoginRequiredMixin, View):
-    login_url = "/app/login/"  # <- your login page route
-    redirect_field_name = "next"
-
-    def get(self, request):
-        if request.user.role != UserType.CUSTOMER:
-            return redirect("agent_dashboard_page")
-        return render(request, "customer_dashboard.html", {"user": request.user})
-
-
-class AgentDashboardPageView(LoginRequiredMixin, View):
-    login_url = "/app/login/"  # <- your login page route
-    redirect_field_name = "next"  # optional, default is "next"
-    def get(self, request):
-        if request.user.role != UserType.AGENT:
+    def post(self, request):
+        form = CustomerSignupForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Store both user_id and account_id in session for multi-tenant checks
+            request.session['user_id'] = user.id
+            request.session['account_id'] = user.account_id.id
+            request.session['role'] = user.role
             return redirect("customer_dashboard_page")
-        return render(request, "agent_dashboard.html", {"user": request.user})
+        return render(request, "signup.html", {"form": form})
+
+
+class LoginView(View):
+    logout_url="/logout/"
+
+    def get(self, request):
+        form = LoginForm()
+        return render(request, "login.html", {"form": form})
+
+    def post(self, request):
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            user = form.user
+            # Manual session login (multi-tenant safe)
+            request.session['user_id'] = user.id
+            request.session['account_id'] = user.account_id.id
+            request.session['role'] = user.role
+            # Redirect based on role
+            if user.role == UserType.CUSTOMER:
+                return redirect("customer_dashboard_page")
+            else:
+                return redirect("agent_dashboard_page")
+        return render(request, "login.html", {"form": form})
+
+
+class LogoutView(View):
+    def get(self, request):
+        request.session.flush()  # Clear all session data
+        return redirect("/login/")
+
+
+class AgentCreateView(CustomerRequiredMixin, View):
+    login_url = "/login/"
+
+    def get(self, request):
+        form = AgentCreateForm()
+        return render(request, "agent_form.html", {"form": form})
+
+    def post(self, request):
+        form = AgentCreateForm(request.POST)
+        if form.is_valid():
+            form.save(customer=request.user)
+            return redirect("customer_dashboard_page")
+        return render(request, "customer_dashboard.html",{
+            "user": request.user,
+            "agents_form": form
+        })
+
+
+class CustomerDashboardPageView(CustomerRequiredMixin, View):
+    login_url = "/login/"
+
+    def get(self, request):
+        user = request.user
+
+        agents = AppUser.objects.filter(account_id=user.account_id, role=UserType.AGENT)
+        return render(request, "customer_dashboard.html", {
+            "user": user,
+            "agents": agents
+        })
+
+
+class AgentDashboardPageView(AgentRequiredMixin, View):
+    login_url = "/login/"
+
+
+    def get(self, request):
+
+        return render(request, "agent_dashmmboard.html", {"user": request.user})

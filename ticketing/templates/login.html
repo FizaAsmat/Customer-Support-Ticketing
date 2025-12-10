@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
     <div class="col-md-4">
         <h2 class="mb-4 text-center">Login</h2>
-        <form id="loginForm">
+        <form method="post" id="loginForm">
             {% csrf_token %}
             <div class="mb-3">
                 <label for="portal" class="form-label">Portal Name</label>
@@ -22,52 +22,23 @@
             </div>
             <button type="submit" class="btn btn-primary w-100">Login</button>
         </form>
+
+        {% if form.errors %}
+            <div class="mt-3 alert alert-danger">
+                <ul class="mb-0">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
     </div>
 </div>
 
-<script>
-document.getElementById("loginForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-
-    const portal = document.getElementById("portal").value;
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-
-    try {
-        const response = await fetch("{% url 'login_api' %}", {  // fixed name
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({ portal, email, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            localStorage.setItem("access", data.access_token);
-            localStorage.setItem("role", data.role);
-
-            alert('logged in')
-            window.location.href = "{% url 'customer_dashboard_page' %}";
-            // Redirect based on role
-            if (data.role === "Customer") {
-                window.location.href = "{% url 'customer_dashboard_page' %}";
-            } else if (data.role === "Agent") {
-                window.location.href = "{% url 'agent_dashboard_page' %}";
-            }
-        } else {
-            let errorText = "";
-            for (let key in data) {
-                errorText += `${key}: ${data[key]}\n`;
-            }
-            alert(errorText);
-        }
-    } catch (err) {
-        console.error(err);
-        alert("An error occurred. Please try again.");
-    }
-});
-</script>
+<!-- No JS fetch needed for session login -->
 {% endblock %}

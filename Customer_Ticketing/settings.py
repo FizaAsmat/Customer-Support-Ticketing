@@ -37,8 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ticketing',
-    'rest_framework',
-    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -71,12 +69,6 @@ TEMPLATES = [
 
 
 WSGI_APPLICATION = 'Customer_Ticketing.wsgi.application'
-
-REST_FRAMEWORK = {
-    "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRenderer",
-    ]
-}
 
 
 # Database

@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
     <div class="col-md-5">
         <h2 class="mb-4 text-center">Customer Signup</h2>
-        <form id="signupForm">
+        <form method="post" id="signupForm">
             {% csrf_token %}
             <div class="mb-3">
                 <label for="portal" class="form-label">Portal Name</label>
@@ -26,46 +26,21 @@
             </div>
             <button type="submit" class="btn btn-primary w-100">Signup</button>
         </form>
+
+        {% if form.errors %}
+            <div class="mt-3 alert alert-danger">
+                <ul class="mb-0">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
     </div>
 </div>
-
-<script>
-document.getElementById("signupForm").addEventListener("submit", async function(e){
-    e.preventDefault(); // prevent normal form submission
-
-    const portal = document.getElementById("portal").value;
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-
-    try {
-        const response = await fetch("{% url 'customer-signup-api' %}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify({ portal, name, email, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(data.message);  // success message
-            window.location.href = "{% url 'customer_dashboard_page' %}"; // redirect to dashboard
-        } else {
-            // display validation errors from DRF
-            let errorText = "";
-            for (let key in data) {
-                errorText += `${key}: ${data[key]}\n`;
-            }
-            alert(errorText);
-        }
-
-    } catch (err) {
-        console.error(err);
-        alert("An unexpected error occurred. Please try again.");
-    }
-});
-</script>
 {% endblock %}

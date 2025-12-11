@@ -1,13 +1,4 @@
-{% extends 'dashboard.html' %}
-
-{% block navbar %}
-    {% include 'agent_navbar.html' %}
-{% endblock %}
-
-{% block title %}Dashboard{% endblock %}
-
 {% block content %}
 <h2>Welcome, {{ user.name }}!</h2>
-<p>Portal: {{ user.account_id.portal }}</p>
-<p>Role: {{ user.role }}</p>
+<p>{{ user.job_title }}</p>
 {% endblock %}

@@ -23,9 +23,15 @@ class CustomerSignupView(View):
 
 
 class LoginView(View):
-    logout_url="/logout/"
 
     def get(self, request):
+        if request.session.get("user_id") and request.session.get("account_id"):
+            role = request.session.get("role")
+            if role == UserType.CUSTOMER:
+                return redirect("customer_dashboard_page")
+            else:
+                return redirect("agent_dashboard_page")
+
         form = LoginForm()
         return render(request, "login.html", {"form": form})
 
@@ -76,7 +82,7 @@ class CustomerDashboardPageView(CustomerRequiredMixin, View):
         user = request.user
 
         agents = AppUser.objects.filter(account_id=user.account_id, role=UserType.AGENT)
-        return render(request, "customer_dashboard.html", {
+        return render(request, "dashboard.html", {
             "user": user,
             "agents": agents
         })
@@ -88,4 +94,4 @@ class AgentDashboardPageView(AgentRequiredMixin, View):
 
     def get(self, request):
 
-        return render(request, "agent_dashmmboard.html", {"user": request.user})
+        return render(request, "dashboard.html", {"user": request.user})

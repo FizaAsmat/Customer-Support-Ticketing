@@ -9,7 +9,7 @@ from django.conf.urls.static import static
 urlpatterns=[
 # Template rendering
     path('', CustomerDashboardPageView.as_view(), name="customer_dashboard_page"),
-    path('', AgentDashboardPageView.as_view(), name="agent_dashboard_page"),
+    path('home/', AgentDashboardPageView.as_view(), name="agent_dashboard_page"),
 
     path("signup/", CustomerSignupView.as_view(), name="customer-signup-api"),
     path("agents/new", AgentCreateView.as_view(), name="create-agent_api"),

@@ -1,21 +1,48 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="#">Dashboard</a>
-        <div class="collapse navbar-collapse">
+
+        <a class="navbar-brand fw-bold" href="#">{{ user.account_id.portal }}</a>
+
+        <!-- Mobile Toggle Button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav" aria-controls="navbarNav"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Collapsible Items -->
+        <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link btn btn-success me-2 text-white" href="{% url 'customer_dashboard_page' %}">Dashboard</a>
+
+                <li class="nav-item me-2">
+                    <a class="btn btn-outline-light px-3"
+                       href="{% url 'customer_dashboard_page' %}">
+                        Dashboard
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link btn btn-primary me-2 text-white" href="{% url 'create-agent_api' %}">Add Agent</a>
+
+                <li class="nav-item me-2">
+                    <a class="btn btn-outline-light px-3"
+                       href="{% url 'create-agent_api' %}">
+                        Add Agent
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link btn btn-warning me-2 text-white" href="#">Add Ticket</a>
+
+                <li class="nav-item me-2">
+                    <a class="btn btn-outline-light px-3" href="#">
+                        Add Ticket
+                    </a>
                 </li>
+
                 <li class="nav-item">
-                    <a class="nav-link btn btn-danger text-white" href="{% url 'logout' %}">Logout</a>
+                    <a class="btn btn-outline-light px-3"
+                       href="{% url 'logout' %}">
+                        Logout
+                    </a>
                 </li>
+
             </ul>
         </div>
+
     </div>
 </nav>

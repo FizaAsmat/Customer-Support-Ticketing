@@ -40,7 +40,6 @@ class AgentCreateForm(forms.ModelForm):
         fields = ("name", "email", "password", "job_title")
 
     def save(self, customer, commit=True):
-        # customer = request.user
         agent = super().save(commit=False)
         agent.account_id = customer.account_id
         agent.password = make_password(self.cleaned_data["password"])

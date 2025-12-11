@@ -3,25 +3,46 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}My App{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
 </head>
 <body>
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="#">Customer-Agent App</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link btn btn-primary me-2 text-white" href="{% url 'login_api' %}">Login</a>
+
+        <a class="navbar-brand fw-bold" href="#">Customer-Agent App</a>
+
+        <!-- Mobile Toggle Button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav" aria-controls="navbarNav"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Collapsible Section -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center">
+
+                <li class="nav-item me-2">
+                    <a class="btn btn-outline-light px-3" href="{% url 'login_api' %}">
+                        Login
+                    </a>
                 </li>
+
                 <li class="nav-item">
-                    <a class="nav-link btn btn-success text-white" href="{% url 'customer-signup-api' %}">Signup</a>
+                    <a class="btn btn-success px-3" href="{% url 'customer-signup-api' %}">
+                        Signup
+                    </a>
                 </li>
+
             </ul>
         </div>
+
     </div>
 </nav>
+
 
 <div class="container mt-4">
     {% block content %}{% endblock %}

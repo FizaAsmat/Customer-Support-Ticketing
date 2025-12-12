@@ -3,16 +3,28 @@
     <div class="col-md-8">
         <h2>Welcome, {{ user.name }}</h2>
     <!-- Sidebar for agents list -->
-    <div class="col-md-4">
+        <div class="col-md-4">
 
-        <h4>Agents You Created</h4>
-        <ul id="agentsList" class="list-group">
-            {% for agent in agents %}
-                <li class="list-group-item">{{ agent.name }} ({{ agent.email }}) - {{ agent.job_title }}</li>
-            {% empty %}
-                <li class="list-group-item">No agents created yet.</li>
-            {% endfor %}
-        </ul>
+            <h4>Agents You Created</h4>
+            <ul id="agentsList" class="list-group">
+                {% for agent in agents %}
+                    <li class="list-group-item">{{ agent.name }} ({{ agent.email }}) - {{ agent.job_title }}</li>
+                {% empty %}
+                    <li class="list-group-item">No agents created yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-4">
+
+            <h4>Tickets You Created</h4>
+            <ul id="ticketsList" class="list-group">
+                {% for ticket in tickets %}
+                    <li class="list-group-item">{{ ticket.title }} ({{ ticket.ticket_category }}) - {{ ticket.status }}</li>
+                {% empty %}
+                    <li class="list-group-item">No tickets created yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -49,7 +61,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+        // Load tickets list from backend via GET
+    async function loadTickets(){
+        try {
+            const res = await fetch("{% url 'customer_ticket_list' %}", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if(res.ok){
+                const tickets = await res.json();
+                const ticketsList = document.getElementById('ticketsList');
+                ticketsList.innerHTML = "";
+                if(tickets.length === 0){
+                    ticketsList.innerHTML = "<li class='list-group-item'>No tickets created yet.</li>";
+                } else {
+                    tickets.forEach(ticket => {
+                        const li = document.createElement('li');
+                        li.className = "list-group-item";
+                        li.textContent = `${ticket.title} (${ticket.ticket_category}) - ${ticket.status}`;
+                        ticketsList.appendChild(li);
+                    });
+                }
+            }
+        } catch(err){
+            console.error("Error loading tickets:", err);
+        }
+    }
+
     // Initial load
+    loadTickets();
     loadAgents();
 });
 </script>

@@ -6,3 +6,92 @@
 
 {% block title %}Add Ticket{% endblock %}
 
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="mb-4 text-center">Add Ticket</h2>
+        <form method="post" id="ticketForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="ticket_title" class="form-label">Title</label>
+                <input type="text" class="form-control" id="ticket_title" name="title"
+                       value="{{ form.title.value|default_if_none:'' }}" required>
+                {% if form.title.errors %}
+                    <div class="text-danger">
+                        {% for error in form.title.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label for="ticket_description" class="form-label">Description</label>
+                <textarea class="form-control" id="ticket_description" name="description" required>{{ form.description.value|default_if_none:'' }}</textarea>
+                {% if form.description.errors %}
+                    <div class="text-danger">
+                        {% for error in form.description.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label for="ticket_category" class="form-label">Category</label>
+                <select class="form-select" id="ticket_category" name="ticket_category" required>
+                    <option value="">Select Category</option>
+                    {% for choice_value, choice_label in form.ticket_category.field.choices %}
+                        <option value="{{ choice_value }}" {% if form.ticket_category.value == choice_value %}selected{% endif %}>
+                            {{ choice_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.ticket_category.errors %}
+                    <div class="text-danger">
+                        {% for error in form.ticket_category.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label for="priority_id" class="form-label">Priority</label>
+                <select class="form-select" id="priority_id" name="priority_id" required>
+                    <option value="">Select Priority</option>
+                    {% for choice_value, choice_label in form.priority_id.field.choices %}
+                        <option value="{{ choice_value }}" {% if form.priority_id.value == choice_value %}selected{% endif %}>
+                            {{ choice_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.priority_id.errors %}
+                    <div class="text-danger">
+                        {% for error in form.priority_id.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label for="assignee_id" class="form-label">Assignee</label>
+                <select class="form-select" id="assignee_id" name="assignee_id" required>
+                    <option value="">Select Assignee</option>
+                    {% for choice_value, choice_label in form.assignee_id.field.choices %}
+                        <option value="{{ choice_value }}" {% if form.assignee_id.value == choice_value %}selected{% endif %}>
+                            {{ choice_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if form.assignee_id.errors %}
+                    <div class="text-danger">
+                        {% for error in form.assignee_id.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Create Ticket</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

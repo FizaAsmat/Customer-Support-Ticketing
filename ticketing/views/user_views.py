@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect
 from django.views import View
 from ..serializers.user_form import CustomerSignupForm, AgentCreateForm, LoginForm
 from ..models.users import UserType, AppUser
-from ..permissions import CustomerRequiredMixin, AgentRequiredMixin
+from ..permissions import CustomerRequiredMixin, AgentRequiredMixin, AccountAwareMixin
+from ..models.tickets import Ticket
 
 
 class CustomerSignupView(View):
@@ -75,22 +76,25 @@ class AgentCreateView(CustomerRequiredMixin, View):
         })
 
 
-class CustomerDashboardPageView(CustomerRequiredMixin, View):
+class CustomerDashboardPageView(CustomerRequiredMixin, AccountAwareMixin, View):
     login_url = "/login/"
 
     def get(self, request):
         user = request.user
 
         agents = AppUser.objects.filter(account_id=user.account_id, role=UserType.AGENT)
+
+        tickets=Ticket.objects.filter(creator_id=user.user_id)
         return render(request, "dashboard.html", {
             "user": user,
-            "agents": agents
+            "agents": agents,
+            "tickets": tickets
         })
+
 
 
 class AgentDashboardPageView(AgentRequiredMixin, View):
     login_url = "/login/"
-
 
     def get(self, request):
 

@@ -36,3 +36,16 @@ class AgentRequiredMixin(View):
             return redirect(self.login_url)
         request.user = user
         return super().dispatch(request, *args, **kwargs)
+
+
+class AccountAwareMixin(View):
+    login_url = "/login/"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(request, "user") or not request.user.account_id:
+            return redirect(self.login_url)
+        return super().dispatch(request, *args, **kwargs)
+
+    def filter_queryset_by_account(self, queryset, user_field="creator_id"):
+        filter_kwargs = {f"{user_field}__account_id": self.request.user.account_id}
+        return queryset.filter(**filter_kwargs)

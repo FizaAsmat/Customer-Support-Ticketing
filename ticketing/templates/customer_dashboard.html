@@ -1,96 +1,85 @@
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <h2>Welcome, {{ user.name }}</h2>
-    <!-- Sidebar for agents list -->
-        <div class="col-md-4">
+<div class="container">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <h2>Welcome, {{ user.name }}</h2>
+        </div>
+    </div>
 
+    <div class="row">
+        <div class="col-md-6">
             <h4>Agents You Created</h4>
-            <ul id="agentsList" class="list-group">
+            <ul class="list-group">
                 {% for agent in agents %}
-                    <li class="list-group-item">{{ agent.name }} ({{ agent.email }}) - {{ agent.job_title }}</li>
+                    <li class="list-group-item">
+                        {{ agent.name }} ({{ agent.email }}) - {{ agent.job_title }}
+                    </li>
                 {% empty %}
                     <li class="list-group-item">No agents created yet.</li>
                 {% endfor %}
             </ul>
         </div>
-        <div class="col-md-4">
-
+        <div class="col-md-6">
             <h4>Tickets You Created</h4>
-            <ul id="ticketsList" class="list-group">
+            <ul class="list-group">
                 {% for ticket in tickets %}
-                    <li class="list-group-item">{{ ticket.title }} ({{ ticket.ticket_category }}) - {{ ticket.status }}</li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {{ ticket.title }} ({{ ticket.ticket_category }}) - {{ ticket.status }}
+                        </div>
+                        <div>
+                            <a href="{% url 'ticket_update' ticket.id %}" class="btn btn-warning btn-sm">Update</a>
+                            <a class="btn btn-info btn-sm">Show</a>
+                        </div>
+                    </li>
                 {% empty %}
                     <li class="list-group-item">No tickets created yet.</li>
                 {% endfor %}
             </ul>
         </div>
     </div>
+    <hr class="my-5">
+
+    <div class="row">
+        <div class="col-12 mb-3">
+            <h4>Your Tickets by Status</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for status in statuses %}
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-header text-center fw-bold">
+                        {{ status.status }}
+                    </div>
+
+                    <ul class="list-group list-group-flush">
+                        {% for ticket in tickets_by_status.status.id %}
+                            <li class="list-group-item">
+                                <strong>{{ ticket.title }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ ticket.ticket_category }}
+                                </small>
+
+                                <div class="mt-2">
+                                    <a href="{% url 'ticket_update' ticket.id %}"
+                                       class="btn btn-sm btn-outline-warning">
+                                        Update
+                                    </a>
+                                </div>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted text-center">
+                                No tickets
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-
-    // Load agents list from backend via GET
-    async function loadAgents(){
-        try {
-            const res = await fetch("{% url 'create-agent_api' %}", {
-                method: "GET",
-                headers: { "Accept": "application/json" }
-            });
-            if(res.ok){
-                const agents = await res.json();
-                const agentsList = document.getElementById('agentsList');
-                agentsList.innerHTML = "";
-                if(agents.length === 0){
-                    agentsList.innerHTML = "<li class='list-group-item'>No agents created yet.</li>";
-                } else {
-                    agents.forEach(agent => {
-                        const li = document.createElement('li');
-                        li.className = "list-group-item";
-                        li.textContent = `${agent.name} (${agent.email}) - ${agent.job_title}`;
-                        agentsList.appendChild(li);
-                    });
-                }
-            }
-        } catch(err){
-            console.error("Error loading agents:", err);
-        }
-    }
-
-        // Load tickets list from backend via GET
-    async function loadTickets(){
-        try {
-            const res = await fetch("{% url 'customer_ticket_list' %}", {
-                method: "GET",
-                headers: { "Accept": "application/json" }
-            });
-            if(res.ok){
-                const tickets = await res.json();
-                const ticketsList = document.getElementById('ticketsList');
-                ticketsList.innerHTML = "";
-                if(tickets.length === 0){
-                    ticketsList.innerHTML = "<li class='list-group-item'>No tickets created yet.</li>";
-                } else {
-                    tickets.forEach(ticket => {
-                        const li = document.createElement('li');
-                        li.className = "list-group-item";
-                        li.textContent = `${ticket.title} (${ticket.ticket_category}) - ${ticket.status}`;
-                        ticketsList.appendChild(li);
-                    });
-                }
-            }
-        } catch(err){
-            console.error("Error loading tickets:", err);
-        }
-    }
-
-    // Initial load
-    loadTickets();
-    loadAgents();
-});
-</script>
-{% endblock %}

@@ -50,7 +50,6 @@ class Ticket(models.Model):
         updated_by = kwargs.pop("updated_by", None)
         is_update = self.pk is not None
 
-        # Get old ticket if updating
         if is_update:
             old_ticket = Ticket.objects.get(pk=self.pk)
             old_status = old_ticket.status.status
@@ -60,17 +59,14 @@ class Ticket(models.Model):
             old_status = None
             old_description = None
 
-        # Initial assignment logic
         if self.assignee_id and not self.start_time:
             self.start_time = timezone.now()
             self.deadline = self.start_time + self.priority_id.duration
-            # Set status to IN_PROGRESS when assigned
             try:
                 self.status = TicketStatus.objects.get(status="In-Progress")
             except TicketStatus.DoesNotExist:
-                pass  # handle if status not present
+                pass
 
-        #SLA Escalation
         if self.deadline and self.status.status not in ["Resolved", "Closed", "Escalated"]:
             if timezone.now() > self.deadline:
                 try:

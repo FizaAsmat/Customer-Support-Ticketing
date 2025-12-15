@@ -3,7 +3,7 @@ from django.views import View
 from ..serializers.user_form import CustomerSignupForm, AgentCreateForm, LoginForm
 from ..models.users import UserType, AppUser
 from ..permissions import CustomerRequiredMixin, AgentRequiredMixin, AccountAwareMixin
-from ..models.tickets import Ticket
+from ..models.tickets import Ticket, TicketStatus
 
 
 class CustomerSignupView(View):
@@ -15,7 +15,6 @@ class CustomerSignupView(View):
         form = CustomerSignupForm(request.POST)
         if form.is_valid():
             user = form.save()
-            # Store both user_id and account_id in session for multi-tenant checks
             request.session['user_id'] = user.id
             request.session['account_id'] = user.account_id.id
             request.session['role'] = user.role
@@ -40,11 +39,9 @@ class LoginView(View):
         form = LoginForm(request.POST)
         if form.is_valid():
             user = form.user
-            # Manual session login (multi-tenant safe)
             request.session['user_id'] = user.id
             request.session['account_id'] = user.account_id.id
             request.session['role'] = user.role
-            # Redirect based on role
             if user.role == UserType.CUSTOMER:
                 return redirect("customer_dashboard_page")
             else:
@@ -54,7 +51,7 @@ class LoginView(View):
 
 class LogoutView(View):
     def get(self, request):
-        request.session.flush()  # Clear all session data
+        request.session.flush()
         return redirect("/login/")
 
 
@@ -84,11 +81,19 @@ class CustomerDashboardPageView(CustomerRequiredMixin, AccountAwareMixin, View):
 
         agents = AppUser.objects.filter(account_id=user.account_id, role=UserType.AGENT)
 
-        tickets=Ticket.objects.filter(creator_id=user.user_id)
+        tickets=Ticket.objects.filter(creator_id=user.id).select_related("status")
+        statuses = TicketStatus.objects.all().order_by("id")
+
+        tickets_by_status = {
+            status.status: tickets.filter(status=status)
+            for status in statuses
+        }
         return render(request, "dashboard.html", {
             "user": user,
             "agents": agents,
-            "tickets": tickets
+            "tickets": tickets,
+            "statuses": statuses,
+            "tickets_by status":tickets_by_status,
         })
 
 
@@ -97,5 +102,20 @@ class AgentDashboardPageView(AgentRequiredMixin, View):
     login_url = "/login/"
 
     def get(self, request):
+        user=request.user
+        tickets = Ticket.objects.filter(
+            assignee_id=user.id
+        ).select_related("status")
 
-        return render(request, "dashboard.html", {"user": request.user})
+        statuses = TicketStatus.objects.all().order_by("id")
+
+        tickets_by_status = {
+            status.status: tickets.filter(status=status)
+            for status in statuses
+        }
+
+        return render(request, "dashboard.html", {
+            "user": user,
+            "statuses": statuses,
+            "tickets_by_status": tickets_by_status,
+        })

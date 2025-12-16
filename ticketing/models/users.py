@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models import ForeignKey, CASCADE
 from django.db.models.constraints import UniqueConstraint
 
 
@@ -13,7 +12,7 @@ class Account(models.Model):
 
 
 class AppUser(models.Model):
-    account_id=ForeignKey(Account,on_delete=CASCADE)
+    account_id=models.ForeignKey(Account,on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     email = models.EmailField()
     password = models.CharField(max_length=72)

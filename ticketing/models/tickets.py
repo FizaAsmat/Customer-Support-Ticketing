@@ -30,7 +30,8 @@ class Ticket(models.Model):
     priority_id = models.ForeignKey(TicketPriority, on_delete=models.CASCADE)
     status = models.ForeignKey(
         TicketStatus,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        default="TODO"
     )
     start_time = models.DateTimeField(null=True, blank=True)
     deadline = models.DateTimeField(null=True, blank=True)
@@ -50,22 +51,15 @@ class Ticket(models.Model):
         updated_by = kwargs.pop("updated_by", None)
         is_update = self.pk is not None
 
-        if is_update:
-            old_ticket = Ticket.objects.get(pk=self.pk)
-            old_status = old_ticket.status.status
-            old_description = old_ticket.description
-        else:
-            old_ticket = None
-            old_status = None
-            old_description = None
+        old_ticket = Ticket.objects.get(pk=self.pk) if is_update else None
 
-        if self.assignee_id and not self.start_time:
+        if (
+            self.status.status == "In-Progress"
+            and (not old_ticket or old_ticket.status.status != "In-Progress")
+            and not self.start_time
+        ):
             self.start_time = timezone.now()
             self.deadline = self.start_time + self.priority_id.duration
-            try:
-                self.status = TicketStatus.objects.get(status="In-Progress")
-            except TicketStatus.DoesNotExist:
-                pass
 
         if self.deadline and self.status.status not in ["Resolved", "Closed", "Escalated"]:
             if timezone.now() > self.deadline:
@@ -87,18 +81,28 @@ class Ticket(models.Model):
 
         if is_update and updated_by:
             history_data = {}
+            fields_to_track = [
+                "title",
+                "description",
+                "priority_id",
+                "status",
+                "assignee_id",
+                "ticket_category",
+                "start_time",
+                "deadline",
+            ]
 
-            if old_status != self.status.status:
-                history_data["status"] = {
-                    "old": old_status,
-                    "new": self.status.status,
-                }
+            for field in fields_to_track:
+                old_value = getattr(old_ticket, field) if old_ticket else None
+                new_value = getattr(self, field)
 
-            if old_description != self.description:
-                history_data["description"] = {
-                    "old": old_description,
-                    "new": self.description
-                }
+                if isinstance(old_value, models.Model):
+                    old_value = str(old_value)
+                if isinstance(new_value, models.Model):
+                    new_value = str(new_value)
+
+                if old_value != new_value:
+                    history_data[field] = {"old": old_value, "new": new_value}
 
             if history_data:
                 TicketHistory.objects.create(
@@ -118,4 +122,4 @@ class TicketHistory(models.Model):
     changes = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
-        return f"History for Ticket {self.ticket.id} at {self.changed_at}"
+        return f"History for Ticket {self.ticket.id} at {self.changes}"

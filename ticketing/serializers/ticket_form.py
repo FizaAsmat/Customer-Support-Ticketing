@@ -3,6 +3,7 @@ from ..models.tickets import Ticket, TicketPriority, TicketStatus
 from ..models.users import AppUser, UserType
 
 class TicketForm(forms.ModelForm):
+
     DEFAULT_CHOICES = [
         ("1h", "1 Hour"),
         ("4h", "4 Hours"),
@@ -10,6 +11,7 @@ class TicketForm(forms.ModelForm):
         ("1d", "1 Day"),
         ("2d", "2 Days"),
     ]
+
     duration = forms.ChoiceField(
         choices=[],
         required=False,
@@ -18,59 +20,83 @@ class TicketForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ["title", "description", "priority_id", "ticket_category", "assignee_id"]
+        fields = [
+            "title",
+            "description",
+            "ticket_category",
+            "priority_id",
+            "assignee_id",
+        ]
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
+        for field_name, field in self.fields.items():
+            if field_name in ["duration", "ticket_category", "assignee_id", "priority_id"]:
+                field.widget.attrs["class"] = "form-select"
+            else:
+                field.widget.attrs["class"] = "form-control"
+
         self.fields["priority_id"].queryset = TicketPriority.objects.all()
         self.fields["priority_id"].label = "Priority"
         self.fields["priority_id"].empty_label = None
+        self.fields["priority_id"].required = True
 
-        default_choice = ""
-        priority_instance = getattr(self.instance, "priority_id", None)
-        if priority_instance and priority_instance.duration:
-            total_hours = int(priority_instance.duration.total_seconds() // 3600)
-            if total_hours < 24:
-                default_choice = f"{total_hours}h"
-            else:
-                default_choice = f"{total_hours // 24}d"
-
-        self.fields["duration"].choices = [(default_choice, f"From Priority ({default_choice})")] + self.DEFAULT_CHOICES
-        self.fields["duration"].required=False
+        self.fields["duration"].choices = [("", "Select Duration")] + self.DEFAULT_CHOICES
+        self.fields["duration"].required = False
 
         if user:
             agents = AppUser.objects.filter(
-                role=UserType.AGENT, account_id=user.account_id
-            ).values("id", "name", "job_title")
-            agent_choices = [(agent["id"], f'{agent["name"]} ({agent["job_title"]})') for agent in agents]
-
-            self.fields["assignee_id"] = forms.ChoiceField(
-                choices=[("", "Select Agent")] + agent_choices,
-                required=False,
-                label="Assignee"
+                role=UserType.AGENT,
+                account_id=user.account_id
             )
-        self.fields["assignee_id"].required=False
+            self.fields["assignee_id"] = forms.ModelChoiceField(
+                queryset=agents,
+                required=False,
+                label="Assignee",
+                empty_label="Select Assignee",
+                widget=forms.Select(attrs={"class": "form-select"})
+            )
+
+            if self.instance and self.instance.assignee_id:
+                self.fields["assignee_id"].initial = self.instance.assignee_id
+
+            self.fields["assignee_id"].label_from_instance = lambda obj: f"{obj.name} ({obj.job_title})"
+
         if user:
-            job_titles = (
-                AppUser.objects.filter(role=UserType.AGENT, account_id=user.account_id)
+            categories = (
+                AppUser.objects.filter(
+                    role=UserType.AGENT,
+                    account_id=user.account_id
+                )
                 .exclude(job_title__isnull=True)
                 .exclude(job_title="")
                 .values_list("job_title", flat=True)
                 .distinct()
             )
             self.fields["ticket_category"] = forms.ChoiceField(
-                choices=[(jt, jt) for jt in job_titles],
+                choices=[(c, c) for c in categories],
                 required=True,
-                label="Ticket Category"
+                label="Category"
             )
 
-        self.fields["title"].label = "Title"
-        self.fields["description"].label = "Description"
-        self.fields["description"].widget.attrs.update({"rows": 4})
 
 class TicketUpdateForm(forms.ModelForm):
+    DEFAULT_CHOICES = [
+        ("1h", "1 Hour"),
+        ("4h", "4 Hours"),
+        ("8h", "8 Hours"),
+        ("1d", "1 Day"),
+        ("2d", "2 Days"),
+    ]
+
+    duration = forms.ChoiceField(
+        choices=[],
+        required=False,
+        label="SLA Duration"
+    )
+
     class Meta:
         model = Ticket
         fields = [
@@ -87,7 +113,7 @@ class TicketUpdateForm(forms.ModelForm):
             "priority_id": forms.Select(attrs={"class": "form-select"}),
             "status": forms.Select(attrs={"class": "form-select"}),
             "assignee_id": forms.Select(attrs={"class": "form-select"}),
-            "ticket_category": forms.TextInput(attrs={"class": "form-control"}),
+            "ticket_category": forms.Select(attrs={"class": "form-select"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -95,17 +121,71 @@ class TicketUpdateForm(forms.ModelForm):
         self.user = kwargs.pop("user")
         super().__init__(*args, **kwargs)
 
-        allowed_statuses = self.get_allowed_transitions()
+        for field in self.fields.values():
+            field.widget.attrs["class"] = "form-control"
 
+        self.fields["priority_id"].queryset = TicketPriority.objects.all()
+        self.fields["priority_id"].label = "Priority"
+        self.fields["priority_id"].empty_label = None
+        self.fields["priority_id"].required = True
+        if self.ticket.priority_id:
+            self.fields["priority_id"].initial = self.ticket.priority_id
+        self.fields["priority_id"].widget.attrs.update({"class": "form-select"})
+
+        default_choice = ""
+        if self.ticket.priority_id and self.ticket.priority_id.duration:
+            hours = int(self.ticket.priority_id.duration.total_seconds() // 3600)
+            default_choice = f"{hours}h" if hours < 24 else f"{hours // 24}d"
+
+        self.fields["duration"].choices = (
+            [("", "Select Duration")] +
+            [(default_choice, f"From Priority ({default_choice})")] +
+            self.DEFAULT_CHOICES
+        )
+        self.fields["duration"].initial = ""
+        self.fields["duration"].widget.attrs.update({"class": "form-select"})
+
+        agents = AppUser.objects.filter(role=UserType.AGENT, account_id=self.user.account_id)
+        self.fields["assignee_id"] = forms.ModelChoiceField(
+            queryset=agents,
+            required=False,
+            empty_label="Select Assignee",
+            label="Assignee",
+            widget=forms.Select(attrs={"class": "form-select"})
+        )
+        self.fields["assignee_id"].initial = self.ticket.assignee_id
+        self.fields["assignee_id"].label_from_instance = lambda obj: f"{obj.name} ({obj.job_title})"
+
+        categories = (
+            AppUser.objects.filter(role=UserType.AGENT, account_id=self.user.account_id)
+            .exclude(job_title__isnull=True)
+            .exclude(job_title="")
+            .values_list("job_title", flat=True)
+            .distinct()
+        )
+        self.fields["ticket_category"] = forms.ChoiceField(
+            choices=[(c, c) for c in categories],
+            required=True,
+            label="Category",
+            widget=forms.Select(attrs={"class": "form-select"})
+        )
+        self.fields["ticket_category"].initial = self.ticket.ticket_category
+
+        allowed_statuses = self.get_allowed_transitions(self.ticket)
         allowed_statuses.append(self.ticket.status.status)
-
-        self.fields["status"].queryset = TicketStatus.objects.filter(
-            status__in=allowed_statuses
+        self.fields["status"] = forms.ModelChoiceField(
+            queryset=TicketStatus.objects.filter(status__in=allowed_statuses),
+            initial=self.ticket.status,
+            widget=forms.Select(attrs={"class": "form-select"}),
+            label="Status",
+            empty_label=None
         )
 
-        self.fields["status"].initial = self.ticket.status
+        self.fields["title"].initial = self.ticket.title
+        self.fields["description"].initial = self.ticket.description
+        self.fields["description"].widget.attrs.update({"rows": 4})
 
-    def get_allowed_transitions(self):
+    def get_allowed_transitions(self, ticket):
         transitions = {
             "TODO": ["In-Progress"],
             "In-Progress": ["Waiting-For-Customer", "Resolved"],
@@ -114,4 +194,4 @@ class TicketUpdateForm(forms.ModelForm):
             "Closed": [],
             "Escalated": ["In-Progress"],
         }
-        return transitions.get(self.ticket.status.status, [])
+        return transitions.get(ticket.status.status, [])

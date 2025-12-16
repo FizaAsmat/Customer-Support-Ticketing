@@ -1,7 +1,7 @@
 {% extends 'dashboard.html' %}
 
 {% block navbar %}
-{% include 'customer_navbar.html' %}
+    {% include 'customer_navbar.html' %}
 {% endblock %}
 
 {% block title %}Add Ticket{% endblock %}
@@ -10,72 +10,72 @@
 <div class="row justify-content-center">
     <div class="col-md-6">
         <h2 class="mb-4 text-center">Add Ticket</h2>
-        <form method="post">
+
+        <form method="post" novalidate>
             {% csrf_token %}
 
             <div class="mb-3">
                 <label class="form-label">Title</label>
-                <input type="text" name="title" class="form-control"
-                       value="{{ form.title.value|default_if_none:'' }}">
+                {{ form.title }}
+                {{ form.title.errors }}
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Description</label>
-                <textarea name="description" class="form-control" rows="4">{{ form.description.value|default_if_none:'' }}</textarea>
+                {{ form.description }}
+                {{ form.description.errors }}
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Category</label>
-                <select name="ticket_category" class="form-select">
+                <select name="{{ form.ticket_category.name }}" class="form-select">
+                    <option value="" disabled selected>Select Category</option>
                     {% for value, label in form.ticket_category.field.choices %}
                         <option value="{{ value }}" {% if form.ticket_category.value == value %}selected{% endif %}>
                             {{ label }}
                         </option>
                     {% endfor %}
                 </select>
+                {{ form.ticket_category.errors }}
             </div>
 
-           <div class="mb-3">
-               <label class="form-label">SLA Duration (optional)</label>
-               <select name="duration" class="form-select">
-                   <option value="">-- No SLA --</option>
-                   {% for value, label in form.duration.field.choices %}
-                        <option value="{{ value }}"
-                            {% if form.duration.value|stringformat:"s" == value|stringformat:"s" %}
-                                selected
-                            {% endif %}
-                        >
+            <div class="mb-3">
+                <label class="form-label">Priority</label>
+                <select name="{{ form.priority_id.name }}" class="form-select" required>
+                    {% for value, label in form.priority_id.field.choices %}
+                        <option value="{{ value }}" {% if form.priority_id.value == value %}selected{% endif %}>
                             {{ label }}
                         </option>
-                   {% endfor %}
-               </select>
-           </div>
+                    {% endfor %}
+                </select>
+                {{ form.priority_id.errors }}
+            </div>
+
             <div class="mb-3">
                 <label class="form-label">SLA Duration</label>
-                <select name="duration" class="form-select">
+                <select name="{{ form.duration.name }}" class="form-select">
                     {% for value, label in form.duration.field.choices %}
-                        <option value="{{ value }}" {% if form.duration.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>
+                        <option value="{{ value }}" {% if form.duration.value == value %}selected{% endif %}>
                             {{ label }}
                         </option>
                     {% endfor %}
                 </select>
             </div>
-           <div class="mb-3">
-                <label class="form-label">Assignee (optional)</label>
-                <select name="assignee_id" class="form-select">
-                    <option value="">-- Unassigned --</option>
+
+            <div class="mb-3">
+                <label class="form-label">Assignee</label>
+                <select name="{{ form.assignee_id.name }}" class="form-select">
                     {% for value, label in form.assignee_id.field.choices %}
-                        <option value="{{ value }}"
-                            {% if form.assignee_id.value|stringformat:"s" == value|stringformat:"s" %}
-                                selected
-                            {% endif %}
-                        >
+                        <option value="{{ value }}" {% if form.assignee_id.value == value %}selected{% endif %}>
                             {{ label }}
                         </option>
                     {% endfor %}
                 </select>
-           </div>
-            <button type="submit" class="btn btn-primary w-100">Create Ticket</button>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                Create Ticket
+            </button>
         </form>
     </div>
 </div>

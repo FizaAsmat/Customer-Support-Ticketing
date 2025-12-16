@@ -79,43 +79,56 @@ class CustomerDashboardPageView(CustomerRequiredMixin, AccountAwareMixin, View):
     def get(self, request):
         user = request.user
 
-        agents = AppUser.objects.filter(account_id=user.account_id, role=UserType.AGENT)
+        agents = AppUser.objects.filter(
+            account_id=user.account_id,
+            role=UserType.AGENT
+        )
 
-        tickets=Ticket.objects.filter(creator_id=user.id).select_related("status")
+        tickets = Ticket.objects.filter(
+            creator_id=user.id
+        ).select_related(
+            "status", "priority_id", "assignee_id"
+        )
+
         statuses = TicketStatus.objects.all().order_by("id")
 
-        tickets_by_status = {
-            status.status: tickets.filter(status=status)
-            for status in statuses
-        }
+        status_columns = []
+        for status in statuses:
+            status_columns.append({
+                "status": status,
+                "tickets": tickets.filter(status=status)
+            })
+
         return render(request, "dashboard.html", {
             "user": user,
             "agents": agents,
             "tickets": tickets,
-            "statuses": statuses,
-            "tickets_by status":tickets_by_status,
+            "status_columns": status_columns,
         })
-
 
 
 class AgentDashboardPageView(AgentRequiredMixin, View):
     login_url = "/login/"
 
     def get(self, request):
-        user=request.user
+        user = request.user
+
         tickets = Ticket.objects.filter(
             assignee_id=user.id
-        ).select_related("status")
+        ).select_related(
+            "status", "priority_id", "assignee_id"
+        )
 
         statuses = TicketStatus.objects.all().order_by("id")
 
-        tickets_by_status = {
-            status.status: tickets.filter(status=status)
-            for status in statuses
-        }
+        status_columns = []
+        for status in statuses:
+            status_columns.append({
+                "status": status,
+                "tickets": tickets.filter(status=status)
+            })
 
         return render(request, "dashboard.html", {
             "user": user,
-            "statuses": statuses,
-            "tickets_by_status": tickets_by_status,
+            "status_columns": status_columns,
         })

@@ -35,7 +35,10 @@ class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
             if not sla_duration and ticket.priority_id:
                 sla_duration = ticket.priority_id.duration
 
-            if ticket.assignee_id:
+            if not ticket.assignee_id:
+                ticket.status=TicketStatus.objects.get(status="TODO")
+
+            if ticket.assignee_id and sla_duration:
                 ticket.start_time = timezone.now()
                 ticket.deadline = ticket.start_time + sla_duration
                 ticket.status = TicketStatus.objects.get(status="In-Progress")
@@ -44,6 +47,7 @@ class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
             return redirect("customer_dashboard_page")
 
         return render(request, "ticket_form.html", {"form": form})
+
 
 class TicketUpdateView(CustomerRequiredMixin, View):
     login_url = "/login/"
@@ -79,4 +83,3 @@ class TicketUpdateView(CustomerRequiredMixin, View):
             return redirect("customer_dashboard_page")
 
         return render(request, "ticket_update.html", {"form": form, "ticket": ticket})
-

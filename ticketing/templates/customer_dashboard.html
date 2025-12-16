@@ -1,11 +1,14 @@
 {% block content %}
 <div class="container">
+
+    <!-- Welcome -->
     <div class="row">
         <div class="col-12 mb-4">
             <h2>Welcome, {{ user.name }}</h2>
         </div>
     </div>
 
+    <!-- Agents & Tickets List -->
     <div class="row">
         <div class="col-md-6">
             <h4>Agents You Created</h4>
@@ -19,17 +22,26 @@
                 {% endfor %}
             </ul>
         </div>
+
         <div class="col-md-6">
             <h4>Tickets You Created</h4>
             <ul class="list-group">
                 {% for ticket in tickets %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
-                            {{ ticket.title }} ({{ ticket.ticket_category }}) - {{ ticket.status }}
+                            <strong>{{ ticket.title }}</strong>
+                            ({{ ticket.ticket_category }}) -
+                            {{ ticket.status }}
                         </div>
                         <div>
-                            <a href="{% url 'ticket_update' ticket.id %}" class="btn btn-warning btn-sm">Update</a>
-                            <a class="btn btn-info btn-sm">Show</a>
+                            <a href="{% url 'ticket_update' ticket.id %}"
+                               class="btn btn-warning btn-sm">
+                                Update
+                            </a>
+                            <a
+                               class="btn btn-info btn-sm">
+                                Show
+                            </a>
                         </div>
                     </li>
                 {% empty %}
@@ -38,48 +50,83 @@
             </ul>
         </div>
     </div>
+
+    <!-- Divider -->
     <hr class="my-5">
 
+    <!-- Status Columns Header -->
     <div class="row">
         <div class="col-12 mb-3">
             <h4>Your Tickets by Status</h4>
         </div>
     </div>
 
+    <!-- Kanban Columns -->
     <div class="row">
-        {% for status in statuses %}
+        {% for column in status_columns %}
             <div class="col-md-2">
-                <div class="card">
-                    <div class="card-header text-center fw-bold">
-                        {{ status.status }}
+
+                <div class="card h-100 shadow-sm">
+                    <!-- Status Header -->
+                    <div class="card-header text-center fw-bold bg-light">
+                        {{ column.status.status }}
+                        <span class="badge bg-secondary ms-1">
+                            {{ column.tickets|length }}
+                        </span>
                     </div>
 
-                    <ul class="list-group list-group-flush">
-                        {% for ticket in tickets_by_status.status.id %}
-                            <li class="list-group-item">
-                                <strong>{{ ticket.title }}</strong>
-                                <br>
-                                <small class="text-muted">
-                                    {{ ticket.ticket_category }}
-                                </small>
+                    <!-- Tickets -->
+                    <div class="card-body p-2" style="max-height: 70vh; overflow-y: auto;">
+                        {% for ticket in column.tickets %}
+                            <div class="card mb-3 shadow-sm border">
+                                <div class="card-body p-2">
 
-                                <div class="mt-2">
-                                    <a href="{% url 'ticket_update' ticket.id %}"
-                                       class="btn btn-sm btn-outline-warning">
-                                        Update
-                                    </a>
+                                    <h6 class="card-title mb-1">
+                                        {{ ticket.title }}
+                                    </h6>
+
+                                    <small class="text-muted d-block">
+                                        Category: {{ ticket.ticket_category }}
+                                    </small>
+
+                                    <small class="text-muted d-block">
+                                        Priority: {{ ticket.priority_id }}
+                                    </small>
+
+                                    <small class="text-muted d-block">
+                                        Assignee:
+                                        {% if ticket.assignee_id %}
+                                            {{ ticket.assignee_id.name }}
+                                        {% else %}
+                                            Unassigned
+                                        {% endif %}
+                                    </small>
+
+                                    <small class="text-muted d-block">
+                                        Deadline:
+                                        {{ ticket.deadline|date:"d M Y" }}
+                                    </small>
+
+                                    <div class="mt-2 text-end">
+                                        <a href="{% url 'ticket_update' ticket.id %}"
+                                           class="btn btn-sm btn-outline-warning">
+                                            Update
+                                        </a>
+                                    </div>
+
                                 </div>
-                            </li>
+                            </div>
                         {% empty %}
-                            <li class="list-group-item text-muted text-center">
+                            <p class="text-muted text-center mt-2">
                                 No tickets
-                            </li>
+                            </p>
                         {% endfor %}
-                    </ul>
+                    </div>
                 </div>
+
             </div>
         {% endfor %}
     </div>
+
 </div>
 {% endblock %}
-

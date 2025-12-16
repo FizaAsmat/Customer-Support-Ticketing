@@ -1,4 +1,108 @@
 {% block content %}
-<h2>Welcome, {{ user.name }}!</h2>
-<p>{{ user.job_title }}</p>
+<div class="container">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Welcome, {{ user.name }}!</h2>
+            <p class="text-muted">{{ user.job_title }}</p>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-12">
+            <h4>Your Assigned Tickets</h4>
+
+            <ul class="list-group">
+                {% for column in status_columns %}
+                    {% for ticket in column.tickets %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ ticket.title }}</strong>
+                                ({{ ticket.ticket_category }}) –
+                                {{ ticket.status }}
+                            </div>
+
+                            <div>
+                                <a
+                                   class="btn btn-info btn-sm">
+                                    View
+                                </a>
+                            </div>
+                        </li>
+                    {% empty %}
+                        {# handled below #}
+                    {% endfor %}
+                {% empty %}
+                    <li class="list-group-item text-muted">
+                        No tickets assigned to you.
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <hr class="my-5">
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <h4>Your Tickets by Status</h4>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for column in status_columns %}
+            <div class="col-md-2">
+                <div class="card h-100 shadow-sm">
+
+                    <div class="card-header text-center fw-bold bg-light">
+                        {{ column.status.status }}
+                        <span class="badge bg-secondary ms-1">
+                            {{ column.tickets|length }}
+                        </span>
+                    </div>
+
+                    <div class="card-body p-2" style="max-height: 70vh; overflow-y: auto;">
+                        {% for ticket in column.tickets %}
+                            <div class="card mb-3 shadow-sm border">
+                                <div class="card-body p-2">
+
+                                    <h6 class="card-title mb-1">
+                                        {{ ticket.title }}
+                                    </h6>
+
+                                    <small class="text-muted d-block">
+                                        Category: {{ ticket.ticket_category }}
+                                    </small>
+
+                                    <small class="text-muted d-block">
+                                        Priority: {{ ticket.priority_id }}
+                                    </small>
+
+                                    <small class="text-muted d-block">
+                                        Deadline:
+                                        {{ ticket.deadline|date:"d M Y" }}
+                                    </small>
+
+                                    <div class="mt-2 text-end">
+                                        <a href="{% url 'ticket_update' ticket.id %}"
+                                           class="btn btn-sm btn-outline-warning">
+                                            Update
+                                        </a>
+                                    </div>
+
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted text-center mt-2">
+                                No tickets
+                            </p>
+                        {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
 {% endblock %}

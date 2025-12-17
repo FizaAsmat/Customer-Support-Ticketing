@@ -18,6 +18,7 @@
 {% endif %}
 
 <div class="container mt-4">
+
     {% block content %}
         {# Dashboard content based on role #}
         {% if user.role == 'Customer' %}

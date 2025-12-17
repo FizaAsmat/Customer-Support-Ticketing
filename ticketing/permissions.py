@@ -42,8 +42,16 @@ class AccountAwareMixin(View):
     login_url = "/login/"
 
     def dispatch(self, request, *args, **kwargs):
-        if not hasattr(request, "user") or not request.user.account_id:
+        user_id = request.session.get("user_id")
+
+        if not user_id:
             return redirect(self.login_url)
+
+        try:
+            request.user = AppUser.objects.get(id=user_id)
+        except AppUser.DoesNotExist:
+            return redirect(self.login_url)
+
         return super().dispatch(request, *args, **kwargs)
 
     def filter_queryset_by_account(self, queryset, user_field="creator_id"):

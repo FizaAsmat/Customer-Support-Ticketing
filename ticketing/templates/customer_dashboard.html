@@ -1,15 +1,14 @@
-{% block content %}
-<div class="container">
+{# customer_dashboard.html #}
 
-    <!-- Welcome -->
-    <div class="row">
-        <div class="col-12 mb-4">
+<div class="px-2">
+
+    <div class="row mb-4">
+        <div class="col-12">
             <h2>Welcome, {{ user.name }}</h2>
         </div>
     </div>
 
-    <!-- Agents & Tickets List -->
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-md-6">
             <h4>Agents You Created</h4>
             <ul class="list-group">
@@ -27,20 +26,14 @@
             <h4>Tickets You Created</h4>
             <ul class="list-group">
                 {% for ticket in tickets %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item d-flex justify-content-between">
                         <div>
                             <strong>{{ ticket.title }}</strong>
-                            ({{ ticket.ticket_category }}) -
-                            {{ ticket.status }}
+                            ({{ ticket.ticket_category }}) - {{ ticket.status }}
                         </div>
                         <div>
-                            <a href="{% url 'ticket_update' ticket.id %}"
-                               class="btn btn-warning btn-sm">
+                            <a href="{% url 'ticket_update' ticket.id %}" class="btn btn-warning btn-sm">
                                 Update
-                            </a>
-                            <a
-                               class="btn btn-info btn-sm">
-                                Show
                             </a>
                         </div>
                     </li>
@@ -51,23 +44,15 @@
         </div>
     </div>
 
-    <!-- Divider -->
-    <hr class="my-5">
+    <hr class="my-4">
 
-    <!-- Status Columns Header -->
-    <div class="row">
-        <div class="col-12 mb-3">
-            <h4>Your Tickets by Status</h4>
-        </div>
-    </div>
+    <h4 class="mb-3">Your Tickets by Status</h4>
 
-    <!-- Kanban Columns -->
-    <div class="row">
+    <div class="row g-3">
         {% for column in status_columns %}
-            <div class="col-md-2">
-
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <div class="card h-100 shadow-sm">
-                    <!-- Status Header -->
+
                     <div class="card-header text-center fw-bold bg-light">
                         {{ column.status.status }}
                         <span class="badge bg-secondary ms-1">
@@ -75,19 +60,11 @@
                         </span>
                     </div>
 
-                    <!-- Tickets -->
-                    <div class="card-body p-2" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="card-body p-2" style="max-height:70vh; overflow-y:auto;">
                         {% for ticket in column.tickets %}
-                            <div class="card mb-3 shadow-sm border">
+                            <div class="card mb-2">
                                 <div class="card-body p-2">
-
-                                    <h6 class="card-title mb-1">
-                                        {{ ticket.title }}
-                                    </h6>
-
-                                    <small class="text-muted d-block">
-                                        Category: {{ ticket.ticket_category }}
-                                    </small>
+                                    <h6 class="mb-1">{{ ticket.title }}</h6>
 
                                     <small class="text-muted d-block">
                                         Priority: {{ ticket.priority_id }}
@@ -95,38 +72,26 @@
 
                                     <small class="text-muted d-block">
                                         Assignee:
-                                        {% if ticket.assignee_id %}
-                                            {{ ticket.assignee_id.name }}
-                                        {% else %}
-                                            Unassigned
-                                        {% endif %}
+                                        {{ ticket.assignee_id.name|default:"Unassigned" }}
                                     </small>
 
                                     <small class="text-muted d-block">
-                                        Deadline:
-                                        {{ ticket.deadline|date:"d M Y" }}
+                                        Deadline: {{ ticket.deadline|date:"d M Y" }}
                                     </small>
 
-                                    <div class="mt-2 text-end">
-                                        <a href="{% url 'ticket_update' ticket.id %}"
-                                           class="btn btn-sm btn-outline-warning">
-                                            Update
-                                        </a>
+                                    <div class="text-end mt-2">
+                                        <a href="{% url 'ticket_detail' ticket.id %}" class="btn btn-sm btn-outline-warning">Update</a>
                                     </div>
-
                                 </div>
                             </div>
                         {% empty %}
-                            <p class="text-muted text-center mt-2">
-                                No tickets
-                            </p>
+                            <p class="text-muted text-center">No tickets</p>
                         {% endfor %}
                     </div>
-                </div>
 
+                </div>
             </div>
         {% endfor %}
     </div>
 
 </div>
-{% endblock %}

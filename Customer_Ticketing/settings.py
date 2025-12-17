@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
+from celery.schedules import crontab
 
 from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -81,8 +82,25 @@ DATABASES = {
     }
 }
 
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
+
+
+CELERY_BEAT_SCHEDULE = {
+    "escalate-expired-tickets-every-5-min": {
+        "task": "ticketing.tasks.escalate_expired_tickets",
+        "schedule": 300.0,  # every 5 minutes
+    },
+    "auto-close-inactive-tickets-daily": {
+        "task": "ticketing.tasks.auto_close_inactive_tickets",
+        "schedule": crontab(hour=0, minute=0),  # daily at midnight
+    },
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {

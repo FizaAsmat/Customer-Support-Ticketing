@@ -1,6 +1,8 @@
 from django import forms
 from ..models.tickets import Ticket, TicketPriority, TicketStatus
 from ..models.users import AppUser, UserType
+from ..utils import get_allowed_transitions
+
 
 class TicketForm(forms.ModelForm):
 
@@ -171,7 +173,9 @@ class TicketUpdateForm(forms.ModelForm):
         )
         self.fields["ticket_category"].initial = self.ticket.ticket_category
 
-        allowed_statuses = self.get_allowed_transitions(self.ticket)
+
+        allowed_statuses = get_allowed_transitions(self.ticket.status.status)
+        allowed_statuses.append(self.ticket.status.status)
         allowed_statuses.append(self.ticket.status.status)
         self.fields["status"] = forms.ModelChoiceField(
             queryset=TicketStatus.objects.filter(status__in=allowed_statuses),
@@ -185,13 +189,15 @@ class TicketUpdateForm(forms.ModelForm):
         self.fields["description"].initial = self.ticket.description
         self.fields["description"].widget.attrs.update({"rows": 4})
 
-    def get_allowed_transitions(self, ticket):
-        transitions = {
-            "TODO": ["In-Progress"],
-            "In-Progress": ["Waiting-For-Customer", "Resolved"],
-            "Waiting-For-Customer": ["In-Progress", "Resolved"],
-            "Resolved": ["Closed"],
-            "Closed": [],
-            "Escalated": ["In-Progress"],
-        }
-        return transitions.get(ticket.status.status, [])
+    def clean(self):
+        cleaned_data = super().clean()
+
+        new_status = cleaned_data.get("status")
+        assignee = cleaned_data.get("assignee_id") or self.ticket.assignee_id
+
+        if new_status and new_status.status == "In-Progress" and not assignee:
+            raise forms.ValidationError(
+                "Ticket must have an assignee before it can be moved to In-Progress."
+            )
+
+        return cleaned_data

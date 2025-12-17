@@ -5,7 +5,6 @@ from ..models.users import UserType, AppUser
 from ..permissions import CustomerRequiredMixin, AgentRequiredMixin, AccountAwareMixin
 from ..models.tickets import Ticket, TicketStatus
 
-
 class CustomerSignupView(View):
     def get(self, request):
         form = CustomerSignupForm()
@@ -20,7 +19,6 @@ class CustomerSignupView(View):
             request.session['role'] = user.role
             return redirect("customer_dashboard_page")
         return render(request, "signup.html", {"form": form})
-
 
 class LoginView(View):
 
@@ -72,7 +70,6 @@ class AgentCreateView(CustomerRequiredMixin, View):
             "agents_form": form
         })
 
-
 class CustomerDashboardPageView(CustomerRequiredMixin, AccountAwareMixin, View):
     login_url = "/login/"
 
@@ -106,29 +103,35 @@ class CustomerDashboardPageView(CustomerRequiredMixin, AccountAwareMixin, View):
             "status_columns": status_columns,
         })
 
-
 class AgentDashboardPageView(AgentRequiredMixin, View):
     login_url = "/login/"
 
     def get(self, request):
         user = request.user
 
-        tickets = Ticket.objects.filter(
+        assigned_tickets = Ticket.objects.filter(
             assignee_id=user.id
         ).select_related(
             "status", "priority_id", "assignee_id"
         )
 
-        statuses = TicketStatus.objects.all().order_by("id")
+        todo_status = TicketStatus.objects.get(status="TODO")
+        unassigned_todo_tickets = Ticket.objects.filter(
+            status=todo_status,
+            assignee_id__isnull=True,
+            creator_id__account_id=user.account_id
+        ).select_related("status", "priority_id", "creator_id")
 
+        statuses = TicketStatus.objects.all().order_by("id")
         status_columns = []
         for status in statuses:
             status_columns.append({
                 "status": status,
-                "tickets": tickets.filter(status=status)
+                "tickets": assigned_tickets.filter(status=status)
             })
 
         return render(request, "dashboard.html", {
             "user": user,
             "status_columns": status_columns,
+            "unassigned_todo_tickets": unassigned_todo_tickets,
         })

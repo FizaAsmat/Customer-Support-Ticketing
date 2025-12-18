@@ -1,6 +1,6 @@
 from django.db import models
-from users import AppUser
-from tickets import Ticket
+from ..models.users import AppUser
+from ..models.tickets import Ticket
 
 class TicketPurpose(models.TextChoices):
     Ticket_Created ="Ticket Created"
@@ -36,6 +36,7 @@ class NotificationRecipient(models.Model):
         on_delete=models.CASCADE,
         related_name="notifications"
     )
+    is_read = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("notification", "user")

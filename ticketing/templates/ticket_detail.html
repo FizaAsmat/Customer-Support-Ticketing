@@ -4,8 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dashboard</title>
+    <title>Ticket Detail</title>
+
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body>
 
@@ -15,90 +18,126 @@
     {% include "agent_navbar.html" %}
 {% endif %}
 
-{% block content %}
-<div class="container-fluid mt-3">
-    <div class="row mb-3">
-        <div class="col-12 d-flex justify-content-between align-items-center">
-            <h2>{{ ticket.title }}</h2>
-            <a href="{% if ticket.creator_id.role == 'Customer' %}{% url 'customer_dashboard_page' %}{% else %}{% url 'agent_dashboard' %}{% endif %}" class="btn btn-outline-secondary">× Close</a>
-        </div>
-        <div class="col-12 text-muted">
-            Created by: {{ ticket.creator_id.name }} |
-            {% if ticket.assignee_id %}
-                {{ ticket.assignee_id.name }}
-            {% else %}
-                Unassigned
-            {% endif %}
-            |
-            {% if ticket.assignee_id %}
-                {{ ticket.assignee_id.job_title }}
-            {% else %}
-                -
-            {% endif %}
-        </div>
-    </div>
+<div class="mb-3 ms-3">
+    <a href="{% if ticket.creator_id.role == 'Customer' %}
+                {% url 'customer_dashboard_page' %}
+             {% else %}
+                {% url 'agent_dashboard' %}
+             {% endif %}"
+       class="text-decoration-none fs-4">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+</div>
 
-    <div class="row g-3">
-        <div class="col-lg-8">
+<div class="container mt-4 d-flex justify-content-center">
+    <div class="w-100" style="max-width:1400px;">
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Description</h5>
-                    <p>{{ ticket.description }}</p>
+        <!-- TITLE -->
+        <div class="mb-3">
+            <h2 class="mb-1">{{ ticket.title }}</h2>
+            <div class="text-muted">
+                {% if ticket.assignee_id %}
+                    Assigned to {{ ticket.assignee_id.name }} | {{ ticket.assignee_id.job_title }}
+                {% else %}
+                    Unassigned
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- TOP ROW -->
+        <div class="row mb-4 align-items-stretch">
+
+            <!-- LEFT -->
+            <div class="col-lg-8 d-flex flex-column gap-3">
+
+                <!-- DESCRIPTION -->
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5>Description</h5>
+                        <p class="mb-0">{{ ticket.description }}</p>
+                    </div>
+                </div>
+
+                <!-- STATUS UPDATE -->
+                <div class="card shadow-sm">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <span class="badge bg-primary px-3 py-2 fs-6">
+                            {{ ticket.status }}
+                        </span>
+
+                        <form method="post"
+                              action="{% url 'update_ticket_status' ticket.id %}"
+                              class="d-flex flex-grow-1">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <select name="status" class="form-select">
+                                    {% for status in allowed_statuses %}
+                                        <option value="{{ status.id }}"
+                                                {% if status == ticket.status %}selected{% endif %}>
+                                            {{ status.status }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button class="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5>Ticket Info</h5>
+                        <p><strong>Status:</strong> {{ ticket.status }}</p>
+                        <p><strong>Category:</strong> {{ ticket.ticket_category }}</p>
+                        <p><strong>Priority:</strong> {{ ticket.priority_id }}</p>
+                        <p><strong>Deadline:</strong> {{ ticket.deadline|date:"d M Y H:i"|default:"-" }}</p>
+                        <p><strong>Created:</strong> {{ ticket.created_at|date:"d M Y H:i" }}</p>
+                        <p><strong>Start Time:</strong> {{ ticket.start_time|date:"d M Y H:i"|default:"-" }}</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-body d-flex align-items-center">
-                    <span class="badge bg-primary me-3">Status: {{ ticket.status }}</span>
-                    <form method="post" action="{% url 'update_ticket_status' ticket.id %}">
-                        {% csrf_token %}
-                        <div class="input-group">
-                            <select name="status" class="form-select">
-                                {% for status in allowed_statuses %}
-                                    <option value="{{ status.id }}"
-                                            {% if status == ticket.status %}selected{% endif %}>
-                                        {{ status.status }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-primary">Update</button>
-                        </div>
-                    </form>
+        </div>
+
+        <!-- COMMENTS / HISTORY CARD -->
+        <div class="card shadow-sm mb-5">
+            <div class="card-body">
+
+                <!-- TABS -->
+                <div class="d-flex gap-4 border-bottom pb-2 mb-3">
+                    <h5 class="mb-0 tab-btn fw-bold"
+                        data-target="comments"
+                        style="cursor:pointer;">
+                        Comments
+                    </h5>
+
+                    <h5 class="mb-0 tab-btn text-muted"
+                        data-target="history"
+                        style="cursor:pointer;">
+                        History
+                    </h5>
                 </div>
-            </div>
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Comments</h5>
+                <!-- COMMENTS BODY -->
+                <div id="comments" class="tab-body">
 
-                    <div class="comments-container mb-3" style="max-height:400px; overflow-y:auto;">
+                    <div style="max-height:400px; overflow-y:auto;" class="mb-3">
                         {% for comment in comments %}
                             <div class="card mb-2">
                                 <div class="card-body p-2">
-                                    <p>{{ comment.body }}</p>
+                                    <p class="mb-1">{{ comment.body }}</p>
                                     <small class="text-muted">
-                                        By {{ comment.commented_by.name }} | {{ comment.created_at|date:"d M Y H:i" }}
+                                        {{ comment.commented_by.name }} ·
+                                        {{ comment.created_at|date:"d M Y H:i" }}
                                     </small>
-
-                                    <form method="post" action="{% url 'reply_comment' comment.id %}" class="mt-1">
-                                        {% csrf_token %}
-                                        <div class="input-group">
-                                            <input type="text" name="reply" class="form-control form-control-sm" placeholder="Reply...">
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Reply</button>
-                                        </div>
-                                    </form>
-
-                                    {% for reply in comment.replies.all %}
-                                        <div class="ms-3 mt-2 p-2 border-start">
-                                            <p>{{ reply.body }}</p>
-                                            <small class="text-muted">By {{ reply.commented_by.name }} | {{ reply.created_at|date:"d M Y H:i" }}</small>
-                                        </div>
-                                    {% endfor %}
                                 </div>
                             </div>
                         {% empty %}
-                            <p class="text-muted">No comments yet.</p>
+                            <p class="text-muted text-center">No comments yet.</p>
                         {% endfor %}
                     </div>
 
@@ -106,35 +145,79 @@
                         {% csrf_token %}
                         <div class="input-group">
                             {{ form.body }}
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-send-fill"></i> Send
+                            <button class="btn btn-primary">
+                                <i class="bi bi-send-fill"></i>
                             </button>
                         </div>
                     </form>
 
                 </div>
-            </div>
 
-        </div>
-        <div class="col-lg-4">
-            <div class="card shadow-sm mb-4 p-3">
-                <h5 class="card-title">Ticket Info</h5>
-                <p><strong>Status:</strong> {{ ticket.status }}</p>
-                <p><strong>Category:</strong> {{ ticket.ticket_category }}</p>
-                <p><strong>Priority:</strong> {{ ticket.priority_id }}</p>
-                <p><strong>Deadline:</strong> {{ ticket.deadline|date:"d M Y H:i" }}</p>
-                <p><strong>Created At:</strong> {{ ticket.created_at|date:"d M Y H:i" }}</p>
-                {% if ticket.start_time %}
-                    <p><strong>Start Time:</strong> {{ ticket.start_time|date:"d M Y H:i" }}</p>
-                {% else %}
-                    <p><strong>Start Time:</strong> -</p>
-                {% endif %}
+                <!-- HISTORY BODY -->
+                <div id="history" class="tab-body d-none">
+
+                    <div style="max-height:400px; overflow-y:auto;">
+
+                        {% for entry in history %}
+                            <div class="pb-3 mb-3 border-bottom">
+
+                                <div class="text-muted mb-2">
+                                    <strong>{{ entry.updated_by.name }}</strong>
+                                    · {{ entry.updated_at|date:"d M Y H:i" }}
+                                </div>
+
+                                {% for field, values in entry.changes.items %}
+                                    <div class="mb-2">
+
+                                        <div class="fw-semibold text-capitalize">
+                                            {{ field|cut:"_" }}
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="flex-fill text-muted">
+                                                {{ values.old|default:"—" }}
+                                            </div>
+
+                                            <i class="bi bi-arrow-right"></i>
+
+                                            <div class="flex-fill fw-semibold">
+                                                {{ values.new|default:"—" }}
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% empty %}
+                            <p class="text-muted text-center">No history available.</p>
+                        {% endfor %}
+
+                    </div>
+                </div>
+
             </div>
         </div>
+
     </div>
 </div>
-{% endblock %}
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+<script>
+    const buttons = document.querySelectorAll(".tab-btn");
+    const bodies = document.querySelectorAll(".tab-body");
+
+    buttons.forEach(btn => {
+        btn.addEventListener("click", () => {
+
+            buttons.forEach(b => b.classList.add("text-muted"));
+            btn.classList.remove("text-muted");
+
+            bodies.forEach(body => body.classList.add("d-none"));
+            document.getElementById(btn.dataset.target).classList.remove("d-none");
+        });
+    });
+</script>
+
 </body>
 </html>

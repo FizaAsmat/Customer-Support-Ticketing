@@ -1,7 +1,7 @@
 from django import forms
 from ..models.tickets import Ticket, TicketPriority, TicketStatus
 from ..models.users import AppUser, UserType
-from ..utils import get_allowed_transitions
+from ..utils.status_transition import get_allowed_transitions
 
 
 class TicketForm(forms.ModelForm):

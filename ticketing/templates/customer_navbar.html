@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
 
-        <a class="navbar-brand fw-bold" href="#">{{ user.account_id.portal }}</a>
+        <a class="navbar-brand fw-bold" href="{% url 'customer_dashboard_page' %}">{{ user.account_id.portal }}</a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarNav" aria-controls="navbarNav"
@@ -13,29 +13,43 @@
             <ul class="navbar-nav ms-auto">
 
                 <li class="nav-item me-2">
-                    <a class="btn btn-outline-light px-3"
-                       href="{% url 'customer_dashboard_page' %}">
-                        Dashboard
-                    </a>
-                </li>
-
-                <li class="nav-item me-2">
-                    <a class="btn btn-outline-light px-3"
-                       href="{% url 'create-agent_api' %}">
+                    <a class="btn btn-outline-light px-3" href="{% url 'create-agent_api' %}">
                         Add Agent
                     </a>
                 </li>
 
                 <li class="nav-item me-2">
-                    <a class="btn btn-outline-light px-3"
-                       href="{% url 'create-ticket' %}">
+                    <a class="btn btn-outline-light px-3" href="{% url 'create-ticket' %}">
                         Add Ticket
                     </a>
                 </li>
 
+                <li class="nav-item dropdown me-2">
+                    <a class="btn btn-outline-light position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-bell"></i>
+                        {% if unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ unread_count }}
+                            <span class="visually-hidden">unread notifications</span>
+                        </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width: 300px;">
+                        {% if notifications %}
+                            {% for recipient in notifications %}
+                                <li class="mb-1 border-bottom pb-1">
+                                    <strong>{{ recipient.notification.purpose }}</strong><br>
+                                    <small class="text-muted">{{ recipient.notification.sent_at|date:"d M Y H:i" }}</small>
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="text-muted">No notifications</li>
+                        {% endif %}
+                    </ul>
+                </li>
+
                 <li class="nav-item">
-                    <a class="btn btn-outline-danger px-3"
-                       href="{% url 'logout' %}">
+                    <a class="btn btn-outline-danger px-3" href="{% url 'logout' %}">
                         Logout
                     </a>
                 </li>

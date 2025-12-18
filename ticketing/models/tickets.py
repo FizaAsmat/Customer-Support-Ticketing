@@ -96,10 +96,21 @@ class Ticket(models.Model):
                 old_value = getattr(old_ticket, field) if old_ticket else None
                 new_value = getattr(self, field)
 
-                if isinstance(old_value, models.Model):
-                    old_value = str(old_value)
-                if isinstance(new_value, models.Model):
-                    new_value = str(new_value)
+                if field in ["assignee_id", "creator_id"]:
+                    old_value = f"{old_value.name} ({old_value.job_title})" if old_value else None
+                    new_value = f"{new_value.name} ({new_value.job_title})" if new_value else None
+                elif field == "status":
+                    old_value = old_value.status if old_value else None
+                    new_value = new_value.status if new_value else None
+                elif field == "priority_id":
+                    old_value = old_value.priority if old_value else None
+                    new_value = new_value.priority if new_value else None
+                elif isinstance(old_value, timezone.datetime) or isinstance(new_value, timezone.datetime):
+                    old_value = old_value.strftime("%d %b %Y %H:%M") if old_value else None
+                    new_value = new_value.strftime("%d %b %Y %H:%M") if new_value else None
+                else:
+                    old_value = str(old_value) if old_value is not None else None
+                    new_value = str(new_value) if new_value is not None else None
 
                 if old_value != new_value:
                     history_data[field] = {"old": old_value, "new": new_value}

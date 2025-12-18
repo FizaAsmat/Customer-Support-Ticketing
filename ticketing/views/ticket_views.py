@@ -4,12 +4,20 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseForbidden
 from django.utils import timezone
 from ..serializers.ticket_form import TicketForm, TicketUpdateForm
-from ..models.tickets import Ticket, TicketHistory, TicketStatus
-from ..permissions import CustomerRequiredMixin, AgentRequiredMixin, AccountAwareMixin
+from ..models.tickets import Ticket, TicketStatus, TicketHistory
+from ..permissions import CustomerRequiredMixin, AccountAwareMixin
 from django.contrib import messages
+from ..models.users import AppUser
 from ..models.comments import Thread, Comment
 from ..serializers.comment_form import ThreadForm
-from ..utils import get_allowed_transitions
+from ..utils.status_transition import get_allowed_transitions
+from ..utils.notifications_utils import (
+    notify_ticket_created,
+    notify_ticket_assigned,
+    notify_ticket_status_updated,
+    notify_comment_added,
+    notify_reply_added,
+)
 
 
 class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
@@ -49,6 +57,8 @@ class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
                 ticket.status = TicketStatus.objects.get(status="In-Progress")
 
             ticket.save(updated_by=request.user)
+            notify_ticket_created(ticket, request.user)
+
             return redirect("customer_dashboard_page")
 
         return render(request, "ticket_form.html", {"form": form})
@@ -75,6 +85,8 @@ class TicketUpdateView(CustomerRequiredMixin, View):
         if not ticket:
             return HttpResponseForbidden("Only customers can update tickets.")
 
+        old_status = ticket.status
+
         form = TicketUpdateForm(
             request.POST,
             instance=ticket,
@@ -85,6 +97,9 @@ class TicketUpdateView(CustomerRequiredMixin, View):
         if form.is_valid():
             updated_ticket = form.save(commit=False)
             updated_ticket.save(updated_by=request.user)
+
+            if old_status != updated_ticket.status:
+                notify_ticket_status_updated(updated_ticket, request.user,old_status)
             return redirect("customer_dashboard_page")
 
         return render(request, "ticket_update.html", {"form": form, "ticket": ticket})
@@ -92,17 +107,25 @@ class TicketUpdateView(CustomerRequiredMixin, View):
 
 def Assign_ticket(request, pk):
     if request.method == "POST":
+
+        user_id = request.session.get("user_id")
+        if not user_id:
+            messages.error(request, "Please login to assign tickets.")
+            return redirect("login")
+
+        user = get_object_or_404(AppUser, id=user_id)
         ticket = get_object_or_404(Ticket, pk=pk)
-        user = request.user
 
         if ticket.assignee_id is None:
             ticket.assignee_id = user
             ticket.save(updated_by=user)
+
+            notify_ticket_assigned(ticket, user)
             messages.success(request, f"Ticket '{ticket.title}' assigned to you.")
         else:
             messages.warning(request, f"Ticket '{ticket.title}' is already assigned.")
 
-    return redirect("agent_dashboard")
+    return redirect("agent_dashboard_page")
 
 
 class TicketDetailView(AccountAwareMixin, View):
@@ -117,6 +140,10 @@ class TicketDetailView(AccountAwareMixin, View):
         comments = Thread.objects.filter(
             comment_entry__ticket=ticket
         ).order_by("-created_at")
+
+        history = TicketHistory.objects.filter(
+            ticket=ticket
+        ).select_related("updated_by").order_by("-updated_at")
 
         form = ThreadForm()
 
@@ -142,6 +169,7 @@ class TicketDetailView(AccountAwareMixin, View):
         return render(request, "ticket_detail.html", {
             "ticket": ticket,
             "comments": comments,
+            "history": history,
             "replies_dict": replies_dict,
             "form": form,
             "allowed_statuses": allowed_statuses,
@@ -150,16 +178,24 @@ class TicketDetailView(AccountAwareMixin, View):
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
 
-        if request.user.account_id != ticket.creator_id.account_id:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return HttpResponseForbidden("Login required")
+
+        user = get_object_or_404(AppUser, id=user_id)
+
+        if user.account_id != ticket.creator_id.account_id:
             return HttpResponseForbidden("You cannot comment on this ticket.")
 
         form = ThreadForm(request.POST)
         if form.is_valid():
             thread = form.save(commit=False)
-            thread.commented_by = request.user
+            thread.commented_by = user
             thread.save()
 
-            Comment.objects.create(ticket=ticket, thread=thread)
+            comment=Comment.objects.create(ticket=ticket, thread=thread)
+
+            notify_comment_added(comment, user)
 
             messages.success(request, "Comment added successfully.")
         return redirect("ticket_detail", pk=ticket.pk)
@@ -170,6 +206,7 @@ class UpdateTicketStatusView(AccountAwareMixin, View):
     def post(self, request, pk):
         ticket = get_object_or_404(Ticket, pk=pk)
 
+        old_status = ticket.status
         new_status_id = request.POST.get("status")
         if not new_status_id:
             messages.error(request, "No status selected.")
@@ -177,9 +214,8 @@ class UpdateTicketStatusView(AccountAwareMixin, View):
 
         new_status = get_object_or_404(TicketStatus, pk=new_status_id)
 
-        current_status = ticket.status.status
+        current_status = old_status.status
         allowed = get_allowed_transitions(current_status)
-
         allowed.append(current_status)
 
         if new_status.status not in allowed:
@@ -199,6 +235,9 @@ class UpdateTicketStatusView(AccountAwareMixin, View):
         ticket.status = new_status
         ticket.save(updated_by=request.user)
 
+        if old_status != new_status:
+            notify_ticket_status_updated(ticket, request.user,old_status)
+
         messages.success(request, f"Ticket status updated to {new_status}.")
         return redirect("ticket_detail", pk=pk)
 
@@ -212,10 +251,11 @@ class ReplyCommentView(AccountAwareMixin, View):
 
         reply_body = request.POST.get("reply")
         if reply_body:
-            Thread.objects.create(
+            reply=Thread.objects.create(
                 body=reply_body,
                 commented_by=request.user,
                 thread_group=original_thread.thread_group
             )
+            notify_reply_added(reply, request.user)
 
         return redirect("ticket_detail", pk=ticket.pk)

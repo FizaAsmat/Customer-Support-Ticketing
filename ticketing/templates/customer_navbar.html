@@ -24,8 +24,8 @@
                     </a>
                 </li>
 
-                <li class="nav-item dropdown me-2">
-                    <a class="btn btn-outline-light position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                <li class="nav-item me-2">
+                    <button type="button" class="btn btn-outline-light position-relative" data-bs-toggle="modal" data-bs-target="#notificationsModal">
                         <i class="bi bi-bell"></i>
                         {% if unread_count > 0 %}
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
@@ -33,19 +33,7 @@
                             <span class="visually-hidden">unread notifications</span>
                         </span>
                         {% endif %}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width: 300px;">
-                        {% if notifications %}
-                            {% for recipient in notifications %}
-                                <li class="mb-1 border-bottom pb-1">
-                                    <strong>{{ recipient.notification.purpose }}</strong><br>
-                                    <small class="text-muted">{{ recipient.notification.sent_at|date:"d M Y H:i" }}</small>
-                                </li>
-                            {% endfor %}
-                        {% else %}
-                            <li class="text-muted">No notifications</li>
-                        {% endif %}
-                    </ul>
+                    </button>
                 </li>
 
                 <li class="nav-item">
@@ -59,3 +47,30 @@
 
     </div>
 </nav>
+
+<div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="notificationsModalLabel">Notifications</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        {% if notifications %}
+            <ul class="list-group">
+                {% for recipient in notifications %}
+                    <li class="list-group-item">
+                        <strong>{{ recipient.notification.purpose }}</strong><br>
+                        <small class="text-muted">{{ recipient.notification.sent_at|date:"d M Y H:i" }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted text-center">No notifications</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>

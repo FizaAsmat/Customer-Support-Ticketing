@@ -53,20 +53,28 @@ class Ticket(models.Model):
 
         old_ticket = Ticket.objects.get(pk=self.pk) if is_update else None
 
+        status_changed = (
+                old_ticket and old_ticket.status_id != self.status_id
+        )
+
         if (
             self.status.status == "In-Progress"
-            and (not old_ticket or old_ticket.status.status != "In-Progress")
-            and not self.start_time
+            # and (not old_ticket or old_ticket.status.status != "In-Progress")
+            # and not self.start_time
         ):
             self.start_time = timezone.now()
             self.deadline = self.start_time + self.priority_id.duration
 
-        if self.deadline and self.status.status not in ["Resolved", "Closed", "Escalated"]:
-            if timezone.now() > self.deadline:
-                try:
-                    self.status = TicketStatus.objects.get(status="Escalated")
-                except TicketStatus.DoesNotExist:
-                    pass
+        if (
+                self.deadline
+                and not status_changed
+                and self.status.status not in ["Resolved", "Closed", "Escalated"]
+                and timezone.now() > self.deadline
+        ):
+            try:
+                self.status = TicketStatus.objects.get(status="Escalated")
+            except TicketStatus.DoesNotExist:
+                pass
 
         if self.status.status == "Waiting-For-Customer":
             inactivity_limit_days = 1
@@ -106,8 +114,8 @@ class Ticket(models.Model):
                     old_value = old_value.priority if old_value else None
                     new_value = new_value.priority if new_value else None
                 elif isinstance(old_value, timezone.datetime) or isinstance(new_value, timezone.datetime):
-                    old_value = old_value.strftime("%d %b %Y %H:%M") if old_value else None
-                    new_value = new_value.strftime("%d %b %Y %H:%M") if new_value else None
+                    old_value = old_value.strftime("%d %b %Y %H:%M:%S") if old_value else None
+                    new_value = new_value.strftime("%d %b %Y %H:%M:%S") if new_value else None
                 else:
                     old_value = str(old_value) if old_value is not None else None
                     new_value = str(new_value) if new_value is not None else None

@@ -19,7 +19,6 @@ from ..utils.notifications_utils import (
     notify_reply_added,
 )
 
-
 class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
     login_url = "/login/"
 
@@ -34,6 +33,8 @@ class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
             ticket = form.save(commit=False)
             ticket.creator_id = request.user
 
+            ticket.status = TicketStatus.objects.get(status="TODO")
+
             duration_map = {
                 "1h": timedelta(hours=1),
                 "4h": timedelta(hours=4),
@@ -41,15 +42,10 @@ class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
                 "1d": timedelta(days=1),
                 "2d": timedelta(days=2),
             }
-
             selected_duration = form.cleaned_data.get("duration")
             sla_duration = duration_map.get(selected_duration)
-
             if not sla_duration and ticket.priority_id:
                 sla_duration = ticket.priority_id.duration
-
-            if not ticket.assignee_id:
-                ticket.status=TicketStatus.objects.get(status="TODO")
 
             if ticket.assignee_id and sla_duration:
                 ticket.start_time = timezone.now()
@@ -62,6 +58,7 @@ class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
             return redirect("customer_dashboard_page")
 
         return render(request, "ticket_form.html", {"form": form})
+
 
 
 class TicketUpdateView(CustomerRequiredMixin, View):
@@ -96,6 +93,21 @@ class TicketUpdateView(CustomerRequiredMixin, View):
 
         if form.is_valid():
             updated_ticket = form.save(commit=False)
+            if updated_ticket.assignee_id and not updated_ticket.assignee_id.is_active:
+                form.add_error(
+                    "assignee_id",
+                    "Selected assignee is inactive. Please choose an active agent."
+                )
+                return render(request, "ticket_update.html", {"form": form, "ticket": ticket})
+
+            if (
+                    updated_ticket.status.status == "In-Progress"
+                    and old_status.status != "In-Progress"
+                    and updated_ticket.assignee_id
+            ):
+                updated_ticket.start_time = timezone.now()
+                updated_ticket.deadline = timezone.now() + updated_ticket.priority_id.duration
+
             updated_ticket.save(updated_by=request.user)
 
             if old_status != updated_ticket.status:

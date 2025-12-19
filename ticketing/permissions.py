@@ -32,7 +32,7 @@ class AgentRequiredMixin(View):
             user = AppUser.objects.get(id=user_id, account_id=account_id)
         except AppUser.DoesNotExist:
             return redirect(self.login_url)
-        if user.role != UserType.AGENT:
+        if user.role != UserType.AGENT or not user.is_active:
             return redirect(self.login_url)
         request.user = user
         return super().dispatch(request, *args, **kwargs)

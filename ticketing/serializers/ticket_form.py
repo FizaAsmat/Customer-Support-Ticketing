@@ -51,7 +51,8 @@ class TicketForm(forms.ModelForm):
         if user:
             agents = AppUser.objects.filter(
                 role=UserType.AGENT,
-                account_id=user.account_id
+                account_id=user.account_id,
+                is_active=True,
             )
             self.fields["assignee_id"] = forms.ModelChoiceField(
                 queryset=agents,
@@ -66,11 +67,11 @@ class TicketForm(forms.ModelForm):
 
             self.fields["assignee_id"].label_from_instance = lambda obj: f"{obj.name} ({obj.job_title})"
 
-        if user:
             categories = (
                 AppUser.objects.filter(
                     role=UserType.AGENT,
-                    account_id=user.account_id
+                    account_id=user.account_id,
+                    is_active=True
                 )
                 .exclude(job_title__isnull=True)
                 .exclude(job_title="")
@@ -82,7 +83,6 @@ class TicketForm(forms.ModelForm):
                 required=True,
                 label="Category"
             )
-
 
 class TicketUpdateForm(forms.ModelForm):
     DEFAULT_CHOICES = [
@@ -136,8 +136,17 @@ class TicketUpdateForm(forms.ModelForm):
 
         default_choice = ""
         if self.ticket.priority_id and self.ticket.priority_id.duration:
-            hours = int(self.ticket.priority_id.duration.total_seconds() // 3600)
-            default_choice = f"{hours}h" if hours < 24 else f"{hours // 24}d"
+            total_seconds = int(self.ticket.priority_id.duration.total_seconds())
+
+            if total_seconds < 3600:
+                minutes = total_seconds // 60
+                default_choice = f"{minutes}m"
+            elif total_seconds < 86400:
+                hours = total_seconds // 3600
+                default_choice = f"{hours}h"
+            else:
+                days = total_seconds // 86400
+                default_choice = f"{days}d"
 
         self.fields["duration"].choices = (
             [("", "Select Duration")] +
@@ -147,7 +156,7 @@ class TicketUpdateForm(forms.ModelForm):
         self.fields["duration"].initial = ""
         self.fields["duration"].widget.attrs.update({"class": "form-select"})
 
-        agents = AppUser.objects.filter(role=UserType.AGENT, account_id=self.user.account_id)
+        agents = AppUser.objects.filter(role=UserType.AGENT, account_id=self.user.account_id, is_active=True)
         self.fields["assignee_id"] = forms.ModelChoiceField(
             queryset=agents,
             required=False,
@@ -159,7 +168,7 @@ class TicketUpdateForm(forms.ModelForm):
         self.fields["assignee_id"].label_from_instance = lambda obj: f"{obj.name} ({obj.job_title})"
 
         categories = (
-            AppUser.objects.filter(role=UserType.AGENT, account_id=self.user.account_id)
+            AppUser.objects.filter(role=UserType.AGENT, account_id=self.user.account_id, is_active=True)
             .exclude(job_title__isnull=True)
             .exclude(job_title="")
             .values_list("job_title", flat=True)
@@ -173,9 +182,7 @@ class TicketUpdateForm(forms.ModelForm):
         )
         self.fields["ticket_category"].initial = self.ticket.ticket_category
 
-
         allowed_statuses = get_allowed_transitions(self.ticket.status.status)
-        allowed_statuses.append(self.ticket.status.status)
         allowed_statuses.append(self.ticket.status.status)
         self.fields["status"] = forms.ModelChoiceField(
             queryset=TicketStatus.objects.filter(status__in=allowed_statuses),
@@ -191,7 +198,6 @@ class TicketUpdateForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-
         new_status = cleaned_data.get("status")
         assignee = cleaned_data.get("assignee_id") or self.ticket.assignee_id
 
@@ -199,5 +205,4 @@ class TicketUpdateForm(forms.ModelForm):
             raise forms.ValidationError(
                 "Ticket must have an assignee before it can be moved to In-Progress."
             )
-
         return cleaned_data

@@ -20,7 +20,6 @@ def _create_notification(ticket, notifier, purpose, recipients):
         recipient_objs = [
             NotificationRecipient(notification=notification, user=user)
             for user in set(recipients)
-            if user != notifier
         ]
 
         NotificationRecipient.objects.bulk_create(recipient_objs)
@@ -78,11 +77,24 @@ def notify_ticket_status_updated(ticket: Ticket, updated_by, old_status):
 
 def notify_comment_added(comment: Comment, commented_by):
     ticket = comment.ticket
-    recipients = [ticket.creator_id]
-    if ticket.assignee_id:
-        recipients.append(ticket.assignee_id)
 
-    purpose = f"{commented_by.name} has commented on Ticket '{ticket.title}': \n {comment.thread.body}"
+    if ticket.assignee_id:
+        recipients = [
+            ticket.creator_id,
+            ticket.assignee_id
+        ]
+
+    else:
+        agents = AppUser.objects.filter(
+            role="AGENT",
+            account_id=ticket.creator_id.account_id
+        )
+        recipients = list(agents) + [ticket.creator_id]
+
+    purpose = (
+        f"{commented_by.name} has commented on Ticket "
+        f"'{ticket.title}':\n{comment.thread.body}"
+    )
 
     _create_notification(
         ticket=ticket,
@@ -90,6 +102,7 @@ def notify_comment_added(comment: Comment, commented_by):
         purpose=purpose,
         recipients=recipients
     )
+
 
 def notify_reply_added(thread: Thread, replied_by):
     try:
@@ -130,13 +143,9 @@ def notify_auto_status_update(
         f"from '{old_status}' to '{new_status}'"
     )
 
-    for user in set(recipients):
-        if user != notifier:
-            NotificationRecipient.objects.create(
-                notification=Notification.objects.create(
-                    ticket=ticket,
-                    notifier=notifier,
-                    purpose=purpose
-                ),
-                user=user
-            )
+    _create_notification(
+        ticket=ticket,
+        notifier=notifier,
+        purpose=purpose,
+        recipients=recipients
+    )

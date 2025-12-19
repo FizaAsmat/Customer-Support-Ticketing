@@ -13,15 +13,24 @@
             <h4>Agents You Created</h4>
             <ul class="list-group">
                 {% for agent in agents %}
-                    <li class="list-group-item">
-                        {{ agent.name }} ({{ agent.email }}) - {{ agent.job_title }}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {{ agent.name }} ({{ agent.email }}) - {{ agent.job_title }}
+                        </div>
+
+                        <form method="post" action="{% url 'agent_soft_delete' agent.id %}" style="margin:0;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Are you sure you want to delete {{ agent.name }}?')">
+                                Delete
+                            </button>
+                        </form>
                     </li>
                 {% empty %}
                     <li class="list-group-item">No agents created yet.</li>
                 {% endfor %}
             </ul>
         </div>
-
         <div class="col-md-6">
             <h4>Tickets You Created</h4>
             <ul class="list-group">

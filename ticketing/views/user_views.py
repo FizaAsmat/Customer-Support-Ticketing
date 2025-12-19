@@ -1,4 +1,6 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.contrib import messages
 from django.views import View
 from ..serializers.user_form import CustomerSignupForm, AgentCreateForm, LoginForm
 from ..models.users import UserType, AppUser
@@ -78,7 +80,8 @@ class CustomerDashboardPageView(CustomerRequiredMixin, AccountAwareMixin, View):
 
         agents = AppUser.objects.filter(
             account_id=user.account_id,
-            role=UserType.AGENT
+            role=UserType.AGENT,
+            is_active=True
         )
 
         tickets = Ticket.objects.filter(
@@ -135,3 +138,31 @@ class AgentDashboardPageView(AgentRequiredMixin, View):
             "status_columns": status_columns,
             "unassigned_todo_tickets": unassigned_todo_tickets,
         })
+
+class AgentSoftDeleteView(CustomerRequiredMixin, View):
+    login_url = "/login/"
+
+    def post(self, request, agent_id):
+        agent = get_object_or_404(AppUser, id=agent_id, role=UserType.AGENT)
+
+        agent.is_active = False
+        agent.deleted_at = timezone.now()
+        agent.save()
+
+        affected_statuses = ["TODO", "In-Progress", "Waiting-For-Customer","Escalated"]
+        todo_status = TicketStatus.objects.get(status="TODO")
+
+        tickets_to_update = Ticket.objects.filter(
+            assignee_id=agent,
+            status__status__in=affected_statuses
+        )
+
+        for ticket in tickets_to_update:
+            ticket.assignee_id = None
+            ticket.status = todo_status
+            ticket.start_time = None
+            ticket.deadline = None
+            ticket.save(updated_by=request.user)
+
+        messages.success(request, f"Agent {agent.name} has been deleted and {tickets_to_update.count()} tickets updated.")
+        return redirect("customer_dashboard_page")

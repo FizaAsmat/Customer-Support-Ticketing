@@ -21,6 +21,8 @@ class AppUser(models.Model):
         choices=UserType.choices,
         default=UserType.CUSTOMER
     )
+    is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints=[

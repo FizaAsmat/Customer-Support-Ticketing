@@ -44,7 +44,7 @@ class LoginView(View):
             request.session['role'] = user.role
             if user.role == UserType.CUSTOMER:
                 return redirect("customer_dashboard_page")
-            else:
+            else :
                 return redirect("agent_dashboard_page")
         return render(request, "login.html", {"form": form})
 
@@ -66,6 +66,10 @@ class AgentCreateView(CustomerRequiredMixin, View):
         form = AgentCreateForm(request.POST)
         if form.is_valid():
             form.save(customer=request.user)
+            messages.success(
+                request,
+                "Agent has been created successfully."
+            )
             return redirect("customer_dashboard_page")
         return render(request, "customer_dashboard.html",{
             "user": request.user,

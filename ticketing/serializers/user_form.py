@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.hashers import make_password,check_password
 from ..models.users import AppUser, Account, UserType
+from django.core.exceptions import ValidationError
+
 
 class CustomerSignupForm(forms.Form):
     portal = forms.CharField(max_length=255)
@@ -72,6 +74,9 @@ class LoginForm(forms.Form):
 
         if not check_password(password, user.password):
             raise forms.ValidationError("Incorrect password")
+
+        if user.role == UserType.AGENT and not user.is_active:
+            raise ValidationError("Your agent account has been deactivated. Contact admin.")
 
         # store user object for view to login
         self.user = user

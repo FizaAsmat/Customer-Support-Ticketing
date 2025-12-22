@@ -54,6 +54,10 @@ class CustomerTicketCreateView(CustomerRequiredMixin, AccountAwareMixin, View):
 
             ticket.save(updated_by=request.user)
             notify_ticket_created(ticket, request.user)
+            messages.success(
+                request,
+                "Ticket created successfully."
+            )
 
             return redirect("customer_dashboard_page")
 
@@ -112,6 +116,10 @@ class TicketUpdateView(CustomerRequiredMixin, View):
 
             if old_status != updated_ticket.status:
                 notify_ticket_status_updated(updated_ticket, request.user,old_status)
+            messages.success(
+                request,
+                "Ticket updated successfully."
+            )
             return redirect("customer_dashboard_page")
 
         return render(request, "ticket_update.html", {"form": form, "ticket": ticket})

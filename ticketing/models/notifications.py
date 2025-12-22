@@ -4,7 +4,7 @@ from ..models.tickets import Ticket
 
 class TicketPurpose(models.TextChoices):
     Ticket_Created ="Ticket Created"
-    Ticked_Assigned = "Ticket Assigned"
+    Ticket_Assigned = "Ticket Assigned"
     Comment="Comment"
 
 

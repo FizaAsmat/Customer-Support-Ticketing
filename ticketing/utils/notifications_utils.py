@@ -1,10 +1,9 @@
 from django.db import transaction
-from django.contrib.auth import get_user_model
 from ..models.notifications import Notification, NotificationRecipient, TicketPurpose
 from ..models.tickets import Ticket
 from ..models.comments import Thread, Comment
+from ..models.users import AppUser
 
-AppUser = get_user_model()
 
 def _create_notification(ticket, notifier, purpose, recipients):
     if not recipients:

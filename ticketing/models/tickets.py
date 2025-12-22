@@ -57,13 +57,12 @@ class Ticket(models.Model):
                 old_ticket and old_ticket.status_id != self.status_id
         )
 
-        if (
-            self.status.status == "In-Progress"
-            # and (not old_ticket or old_ticket.status.status != "In-Progress")
-            # and not self.start_time
-        ):
-            self.start_time = timezone.now()
-            self.deadline = self.start_time + self.priority_id.duration
+        if self.status.status == "In-Progress":
+            if not old_ticket or old_ticket.status.status != "In-Progress":
+                self.start_time = timezone.now()
+
+                if not self.deadline:
+                    self.deadline = self.start_time + self.priority_id.duration
 
         if (
                 self.deadline

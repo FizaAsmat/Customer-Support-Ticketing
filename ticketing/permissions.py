@@ -34,6 +34,7 @@ class AgentRequiredMixin(View):
             return redirect(self.login_url)
         if user.role != UserType.AGENT or not user.is_active:
             return redirect(self.login_url)
+
         request.user = user
         return super().dispatch(request, *args, **kwargs)
 

@@ -2,7 +2,6 @@ from django.db import models
 from django.utils import timezone
 from .users import AppUser, UserType
 
-
 class TicketStatus(models.Model):
     status = models.CharField(max_length=70, unique=True)
 
@@ -50,39 +49,32 @@ class Ticket(models.Model):
     def save(self, *args, **kwargs):
         updated_by = kwargs.pop("updated_by", None)
         is_update = self.pk is not None
-
         old_ticket = Ticket.objects.get(pk=self.pk) if is_update else None
+        now = timezone.now()
 
-        status_changed = (
-                old_ticket and old_ticket.status_id != self.status_id
-        )
+        # Determine if status changed
+        old_status = old_ticket.status if old_ticket else None
+        status_changed = old_status and old_status != self.status
 
         if self.status.status == "In-Progress":
             if not old_ticket or old_ticket.status.status != "In-Progress":
-                self.start_time = timezone.now()
-
-                if not self.deadline:
-                    self.deadline = self.start_time + self.priority_id.duration
+                self.start_time = now
+                self.deadline = now + self.priority_id.duration if self.priority_id else None
 
         if (
                 self.deadline
-                and not status_changed
                 and self.status.status not in ["Resolved", "Closed", "Escalated"]
-                and timezone.now() > self.deadline
+                and now > self.deadline
         ):
-            try:
-                self.status = TicketStatus.objects.get(status="Escalated")
-            except TicketStatus.DoesNotExist:
-                pass
+            escalated_status = TicketStatus.objects.get(status="Escalated")
+            self.status = escalated_status
 
         if self.status.status == "Waiting-For-Customer":
             inactivity_limit_days = 1
             last_change = old_ticket.changed_at if old_ticket else self.created_at
-            if (timezone.now() - last_change).days >= inactivity_limit_days:
-                try:
-                    self.status = TicketStatus.objects.get(status="Closed")
-                except TicketStatus.DoesNotExist:
-                    pass
+            if (now - last_change).days >= inactivity_limit_days:
+                closed_status = TicketStatus.objects.get(status="Closed")
+                self.status = closed_status
 
         super().save(*args, **kwargs)
 

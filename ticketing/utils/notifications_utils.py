@@ -32,6 +32,7 @@ def notify_ticket_created(ticket: Ticket, created_by):
     else:
         agents = AppUser.objects.filter(
             role="AGENT",
+            is_active=True,
             account_id=ticket.creator_id.account_id
         )
         recipients = list(agents) + [ticket.creator_id]
@@ -55,7 +56,7 @@ def notify_ticket_assigned(ticket: Ticket, assigned_by):
     _create_notification(
         ticket=ticket,
         notifier=assigned_by,
-        purpose=TicketPurpose.Ticked_Assigned,
+        purpose=TicketPurpose.Ticket_Assigned,
         recipients=recipients
     )
 
@@ -86,6 +87,7 @@ def notify_comment_added(comment: Comment, commented_by):
     else:
         agents = AppUser.objects.filter(
             role="AGENT",
+            is_active=True,
             account_id=ticket.creator_id.account_id
         )
         recipients = list(agents) + [ticket.creator_id]
@@ -123,28 +125,11 @@ def notify_reply_added(thread: Thread, replied_by):
         recipients=recipients
     )
 
-def notify_auto_status_update(
-    ticket,
-    old_status,
-    new_status,
-    notifier
-):
-    recipients = []
-
-    if ticket.creator_id:
-        recipients.append(ticket.creator_id)
-
+def notify_auto_status_update(ticket, old_status, new_status, notifier):
+    recipients = [ticket.creator_id]
     if ticket.assignee_id:
         recipients.append(ticket.assignee_id)
 
-    purpose = (
-        f"{notifier.name} has changed the ticket status "
-        f"from '{old_status}' to '{new_status}'"
-    )
+    purpose = f"{notifier.name} has changed the ticket status from '{old_status}' to '{new_status}'"
 
-    _create_notification(
-        ticket=ticket,
-        notifier=notifier,
-        purpose=purpose,
-        recipients=recipients
-    )
+    _create_notification(ticket=ticket, notifier=notifier, purpose=purpose, recipients=recipients)

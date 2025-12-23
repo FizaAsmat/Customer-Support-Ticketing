@@ -59,3 +59,25 @@
     </div>
   </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("notificationsModal");
+
+    if (modal) {
+        modal.addEventListener("shown.bs.modal", function () {
+            fetch("{% url 'mark_notifications_read' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}"
+                }
+            })
+            .then(() => {
+                const badge = document.querySelector(".badge.bg-danger");
+                if (badge) {
+                    badge.remove();
+                }
+            });
+        });
+    }
+});
+</script>
